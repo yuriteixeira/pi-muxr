@@ -26,6 +26,7 @@ Run the CLI with:
 pi-dash --help
 pi-dash --list
 pi-dash
+pi-dash --web
 ```
 
 ## Enable the pi extension
@@ -46,6 +47,17 @@ After that, normal `pi` sessions will auto-load `pi-dash`. If pi is already open
 The symlink points at the built files in `dist`, so source changes require a rebuild. Use `pnpm build` once, or keep `pnpm start` running while developing.
 
 The extension creates and updates rows in `~/.pi-dash/pi-dash.sqlite` and removes its row on clean shutdown.
+
+## Web UI
+
+```bash
+pi-dash --web
+# open http://127.0.0.1:3042
+```
+
+The web UI starts or reuses a `pi-dash-web` tmux session running `pi-dash`, attaches it to an xterm.js terminal, and forwards keyboard input/resizes through node-pty. It also shows browser toasts for new unread actionable rows (`ASK`, `ERROR`, `DONE` by default); click **Enable notifications** to allow native browser notifications.
+
+Set `HOST`, `PORT`, or `?session=your-session-name` to customize the bind address or tmux session.
 
 ## tmux popup binding
 
@@ -80,4 +92,4 @@ Defaults include actionable states `ASK`, `ERROR`, and `DONE`, desktop notificat
 
 - The TUI is intentionally minimal.
 - Desktop notifications are best-effort (`notify-send` on Linux, `osascript` on macOS).
-- Permission prompts are not represented in the MVP protocol.
+- The web UI is intentionally single-session oriented.
