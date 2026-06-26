@@ -15,6 +15,7 @@ interface RuntimeState {
   lastError: string | null;
   model: string | null;
   handledToolCallIds: Set<string>;
+  hasToolPreviewInPrompt: boolean;
 }
 
 interface NotificationSnapshot {
@@ -23,7 +24,7 @@ interface NotificationSnapshot {
 }
 
 export default function piDashExtension(pi: any): void {
-  const runtime: RuntimeState = { config: loadConfig(), db: null, id: null, heartbeatTimer: null, lastError: null, model: null, handledToolCallIds: new Set() };
+  const runtime: RuntimeState = { config: loadConfig(), db: null, id: null, heartbeatTimer: null, lastError: null, model: null, handledToolCallIds: new Set(), hasToolPreviewInPrompt: false };
 
   pi.on("session_start", async (_event: unknown, ctx: any) => {
     runtime.config = loadConfig();
@@ -41,9 +42,10 @@ export default function piDashExtension(pi: any): void {
 
   pi.on("agent_start", async (_event: unknown, ctx: any) => {
     runtime.handledToolCallIds.clear();
+    runtime.hasToolPreviewInPrompt = false;
     writeState(runtime, ctx, "RUN", "low", "agent started");
   });
-  pi.on("turn_start", async (event: any, ctx: any) => writeState(runtime, ctx, "RUN", "low", `turn ${formatTurnIndex(event.turnIndex)} started`));
+  pi.on("turn_start", async (event: any, ctx: any) => handleTurnStart(runtime, event, ctx));
   pi.on("tool_call", async (event: any, ctx: any) => handleToolCall(runtime, event, ctx));
   pi.on("tool_execution_start", async (event: any, ctx: any) => handleToolCall(runtime, event, ctx));
   pi.on("tool_result", async (event: any, ctx: any) => handleToolResult(runtime, event, ctx));
@@ -69,10 +71,20 @@ function writeHeartbeat(runtime: RuntimeState, _ctx: any): void {
   updateHeartbeat(runtime.db, runtime.id);
 }
 
+function handleTurnStart(runtime: RuntimeState, event: any, ctx: any): void {
+  if (runtime.hasToolPreviewInPrompt) {
+    writeHeartbeat(runtime, ctx);
+    return;
+  }
+
+  writeState(runtime, ctx, "RUN", "low", `turn ${formatTurnIndex(event.turnIndex)} started`);
+}
+
 function handleToolCall(runtime: RuntimeState, event: any, ctx: any): void {
   const toolCallId = typeof event.toolCallId === "string" ? event.toolCallId : null;
   if (toolCallId && runtime.handledToolCallIds.has(toolCallId)) return;
   if (toolCallId) runtime.handledToolCallIds.add(toolCallId);
+  runtime.hasToolPreviewInPrompt = true;
 
   const input = event.input ?? event.args;
   if (event.toolName === "ask_user") {
