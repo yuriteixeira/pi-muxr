@@ -62,8 +62,8 @@ export function createDashboardTheme(palette: Base16Palette): DashboardTheme {
   return {
     palette,
     background: bg(palette.base00),
-    surface: bg(palette.base01),
-    selectedSurface: bg(palette.base02),
+    surface: identity,
+    selectedSurface: bg(palette.base01),
     border: fg(palette.base03),
     muted: fg(palette.base04),
     text: fg(palette.base05),
@@ -94,6 +94,10 @@ export function bold(text: string): string {
 
 function compose(...styles: StyleFn[]): StyleFn {
   return (text) => styles.reduceRight((value, style) => style(value), text);
+}
+
+function identity(text: string): string {
+  return text;
 }
 
 function parseHex(hex: string): [number, number, number] {

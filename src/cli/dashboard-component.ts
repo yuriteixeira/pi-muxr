@@ -154,9 +154,9 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
   const indicator = selected ? theme.accent("┃") : " ";
   const unread = row.unread ? theme.warning("●") : theme.muted("·");
   const state = visual.style(`${visual.icon} ${visual.label.padEnd(6)}`);
-  const age = theme.muted(fitCell(text.age, 5));
+  const age = theme.muted(fitPlainCell(text.age, 5));
   const panePrefix = mode === "wide" ? " " : "";
-  const summary = row.unread && row.actionable ? theme.bright(text.summary) : theme.text(text.summary);
+  const summaryStyle = row.unread && row.actionable ? theme.bright : theme.text;
 
   if (mode === "wide") {
     const summaryWidth = Math.max(10, width - 2 - 12 - 6 - 26 - 24 - 4);
@@ -164,9 +164,9 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
       fitCell(`${indicator} ${unread}`, 4),
       fitCell(state, 12),
       fitCell(age, 6),
-      fitCell(theme.info(`${panePrefix}${text.pane}`), 26),
-      fitCell(theme.muted(text.project), 24),
-      fitCell(summary, summaryWidth),
+      theme.info(fitPlainCell(`${panePrefix}${text.pane}`, 26)),
+      theme.muted(fitPlainCell(text.project, 24)),
+      summaryStyle(fitPlainCell(text.summary, summaryWidth)),
     ].join(" ");
   }
 
@@ -175,8 +175,8 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
     fitCell(`${indicator} ${unread}`, 4),
     fitCell(state, 12),
     fitCell(age, 6),
-    fitCell(theme.info(text.pane), 20),
-    fitCell(summary, summaryWidth),
+    theme.info(fitPlainCell(text.pane, 20)),
+    summaryStyle(fitPlainCell(text.summary, summaryWidth)),
   ].join(" ");
 }
 
@@ -190,9 +190,9 @@ function renderCard(row: DashboardRow, selected: boolean, width: number, now: nu
   const headerRight = border("╮");
   const fillWidth = Math.max(0, width - visibleWidth(headerLeft) - visibleWidth(headerRight));
   const header = `${headerLeft}${border("─".repeat(fillWidth))}${headerRight}`;
-  const project = `${border("│")} ${fitCell(theme.muted(text.project), Math.max(0, width - 4))} ${border("│")}`;
-  const summaryText = row.unread && row.actionable ? theme.bright(text.summary) : theme.text(text.summary);
-  const summary = `${border("│")} ${fitCell(summaryText, Math.max(0, width - 4))} ${border("│")}`;
+  const project = `${border("│")} ${theme.muted(fitPlainCell(text.project, Math.max(0, width - 4)))} ${border("│")}`;
+  const summaryStyle = row.unread && row.actionable ? theme.bright : theme.text;
+  const summary = `${border("│")} ${summaryStyle(fitPlainCell(text.summary, Math.max(0, width - 4)))} ${border("│")}`;
   const bottom = `${border("╰")}${border("─".repeat(Math.max(0, width - 2)))}${border("╯")}`;
   return [fitCell(header, width), fitCell(project, width), fitCell(summary, width), fitCell(bottom, width)];
 }
@@ -247,6 +247,19 @@ function frameLine(content: string, width: number, theme: DashboardTheme, style?
   const innerWidth = Math.max(0, width - 2);
   const line = padToWidth(content, innerWidth);
   return `${borderStyle("│")}${style ? style(line) : line}${borderStyle("│")}`;
+}
+
+function fitPlainCell(text: string, width: number, ellipsis = "…"): string {
+  if (width <= 0) return "";
+  if (visibleWidth(text) <= width) return text;
+  const ellipsisWidth = visibleWidth(ellipsis);
+  const targetWidth = Math.max(0, width - ellipsisWidth);
+  let result = "";
+  for (const char of text) {
+    if (visibleWidth(result + char) > targetWidth) break;
+    result += char;
+  }
+  return `${result}${ellipsis}`;
 }
 
 function padBody(lines: RenderedBodyLine[], height: number, width: number): RenderedBodyLine[] {

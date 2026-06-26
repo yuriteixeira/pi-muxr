@@ -73,7 +73,8 @@ test("modern dashboard maps states to nerd font icons", () => {
 test("modern dashboard exposes Base16 semantic theme roles", () => {
   assert.equal(DEFAULT_DASHBOARD_THEME.palette.base0D, "#74c0fc");
   assert.match(DEFAULT_DASHBOARD_THEME.accent("x"), /38;2;116;192;252m/);
-  assert.match(DEFAULT_DASHBOARD_THEME.selectedSurface("x"), /48;2;36;42;51m/);
+  assert.equal(DEFAULT_DASHBOARD_THEME.surface("x"), "x");
+  assert.match(DEFAULT_DASHBOARD_THEME.selectedSurface("x"), /48;2;23;27;33m/);
 });
 
 test("modern dashboard selects responsive layout modes", () => {
