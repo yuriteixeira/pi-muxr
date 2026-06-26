@@ -15,6 +15,7 @@ import { getStateIcon } from "../src/cli/dashboard-icons.ts";
 import { chooseDashboardLayout } from "../src/cli/dashboard-layout.ts";
 import { DEFAULT_DASHBOARD_THEME } from "../src/cli/dashboard-theme.ts";
 import { buildDashboardRows } from "../src/cli/rows.ts";
+import { resolveAgentEndStatus } from "../src/extension/pi-dash.ts";
 
 test("actionable/read/dismissed calculation", () => {
   const status = { state: "DONE", lastEventAt: 10 } as const;
@@ -58,6 +59,23 @@ test("dashboard rows mark stale and hide dismissed", () => {
 
   const dismissedRows = buildDashboardRows([{ ...status, dismissedUntilEventAt: 100 }], [], { ...DEFAULT_CONFIG, showDismissedRows: false }, 100_000);
   assert.equal(dismissedRows.length, 0);
+});
+
+test("extension reports DONE when agent recovered from a tool error", () => {
+  const status = resolveAgentEndStatus({ messages: [
+    { role: "toolResult", toolName: "bash", isError: true, content: [{ type: "text", text: "exit 1" }] },
+    { role: "assistant", stopReason: "stop", content: [{ type: "text", text: "handled" }] },
+  ] }, "bash: exit 1");
+
+  assert.deepEqual(status, { state: "DONE", severity: "medium", summary: "turn completed" });
+});
+
+test("extension reports ERROR for failed final agent message", () => {
+  const status = resolveAgentEndStatus({ messages: [
+    { role: "assistant", stopReason: "error", errorMessage: "provider failed" },
+  ] }, null);
+
+  assert.deepEqual(status, { state: "ERROR", severity: "high", summary: "provider failed" });
 });
 
 test("modern dashboard maps states to nerd font icons", () => {

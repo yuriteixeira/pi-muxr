@@ -41,6 +41,7 @@ export default function piDashExtension(pi: any): void {
   });
 
   pi.on("agent_start", async (_event: unknown, ctx: any) => {
+    runtime.lastError = null;
     runtime.handledToolCallIds.clear();
     runtime.hasToolPreviewInPrompt = false;
     writeState(runtime, ctx, "RUN", "low", "agent started");
@@ -49,13 +50,10 @@ export default function piDashExtension(pi: any): void {
   pi.on("tool_call", async (event: any, ctx: any) => handleToolCall(runtime, event, ctx));
   pi.on("tool_execution_start", async (event: any, ctx: any) => handleToolCall(runtime, event, ctx));
   pi.on("tool_result", async (event: any, ctx: any) => handleToolResult(runtime, event, ctx));
-  pi.on("agent_end", async (_event: unknown, ctx: any) => {
-    if (runtime.lastError) {
-      writeState(runtime, ctx, "ERROR", "high", runtime.lastError);
-      runtime.lastError = null;
-      return;
-    }
-    writeState(runtime, ctx, "DONE", "medium", "turn completed");
+  pi.on("agent_end", async (event: unknown, ctx: any) => {
+    const status = resolveAgentEndStatus(event, runtime.lastError);
+    writeState(runtime, ctx, status.state, status.severity, status.summary);
+    runtime.lastError = null;
   });
 
   pi.on("session_shutdown", async (_event: unknown) => {
@@ -96,12 +94,59 @@ function handleToolCall(runtime: RuntimeState, event: any, ctx: any): void {
 }
 
 function handleToolResult(runtime: RuntimeState, event: any, ctx: any): void {
-  if (event.toolName === "ask_user" && !event.isError) {
+  if (event.toolName === "ask_user" && event.isError !== true) {
+    runtime.lastError = null;
     writeState(runtime, ctx, "RUN", "low", summarizeAskUserResult(event));
     return;
   }
 
-  if (event.isError) runtime.lastError = `${event.toolName}: ${summarizeResult(event)}`;
+  runtime.lastError = event.isError === true ? `${event.toolName}: ${summarizeResult(event)}` : null;
+}
+
+export function resolveAgentEndStatus(event: unknown, fallbackError: string | null): Pick<PiDashStatus, "state" | "severity" | "summary"> {
+  const failure = summarizeAgentEndFailure(event);
+  if (failure) return { state: "ERROR", severity: "high", summary: failure };
+  if (!hasAgentEndMessages(event) && fallbackError) return { state: "ERROR", severity: "high", summary: fallbackError };
+  return { state: "DONE", severity: "medium", summary: "turn completed" };
+}
+
+function summarizeAgentEndFailure(event: unknown): string | null {
+  const messages = getAgentEndMessages(event);
+  if (!messages) return null;
+
+  const assistant = findLastMessageByRole(messages, "assistant");
+  if (isRecord(assistant) && (assistant.stopReason === "error" || assistant.stopReason === "aborted")) {
+    return typeof assistant.errorMessage === "string" && assistant.errorMessage.trim() ? truncate(assistant.errorMessage.trim(), 200) : `assistant ${assistant.stopReason}`;
+  }
+
+  const lastMessage = messages.at(-1);
+  if (isRecord(lastMessage) && lastMessage.role === "toolResult" && lastMessage.isError === true) {
+    const toolName = typeof lastMessage.toolName === "string" ? lastMessage.toolName : "tool";
+    return `${toolName}: ${summarizeResult(lastMessage)}`;
+  }
+
+  return null;
+}
+
+function hasAgentEndMessages(event: unknown): boolean {
+  return Array.isArray((event as { messages?: unknown } | null)?.messages);
+}
+
+function getAgentEndMessages(event: unknown): unknown[] | null {
+  const messages = (event as { messages?: unknown } | null)?.messages;
+  return Array.isArray(messages) ? messages : null;
+}
+
+function findLastMessageByRole(messages: unknown[], role: string): unknown {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (isRecord(message) && message.role === role) return message;
+  }
+  return null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object";
 }
 
 function writeState(runtime: RuntimeState, ctx: any, state: PiDashState, severity: PiDashStatus["severity"], summary: string): void {
