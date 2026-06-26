@@ -1,0 +1,33 @@
+{
+  "name": "pi-dash",
+  "version": "0.1.0",
+  "description": "tmux-native dashboard for pi coding-agent sessions",
+  "type": "module",
+  "packageManager": "pnpm@11.0.0-dev.1005",
+  "bin": {
+    "pi-dash": "./dist/cli/index.js"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./extension": "./dist/extension/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test --experimental-sqlite --import tsx test/*.test.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

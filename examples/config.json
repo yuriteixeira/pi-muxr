@@ -1,0 +1,13 @@
+{
+  "stateDir": "~/.pi-dash",
+  "databasePath": "~/.pi-dash/pi-dash.sqlite",
+  "actionableStates": ["ASK", "ERROR", "DONE"],
+  "desktopNotifications": true,
+  "suppressDesktopNotificationsWhenDashboardOpen": true,
+  "dashboardBell": true,
+  "showDismissedRows": false,
+  "staleAfterMs": 30000,
+  "heartbeatIntervalMs": 5000,
+  "dashboardPresenceIntervalMs": 2000,
+  "dashboardPresenceStaleAfterMs": 5000
+}
