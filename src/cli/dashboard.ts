@@ -1,13 +1,13 @@
-import { stdin as input, stdout as output } from "node:process";
+import { ProcessTerminal, TUI } from "@earendil-works/pi-tui";
 import { loadConfig } from "../config/config.js";
 import type { DashboardConfig, DashboardRow, TmuxPane } from "../domain/status.js";
-import { openDatabase, type Database } from "../state/database.js";
 import { createPresenceId, removeDashboardPresence, writeDashboardPresence } from "../state/dashboard-presence.js";
+import { openDatabase, type Database } from "../state/database.js";
 import { readStatuses } from "../state/read-statuses.js";
 import { dismissAllRead, dismissStatus, markRead } from "../state/write-status.js";
 import { focusPane } from "../tmux/focus.js";
 import { listTmuxPanes } from "../tmux/list-panes.js";
-import { renderRows } from "./format.js";
+import { DashboardComponent, type DashboardActions } from "./dashboard-component.js";
 import { buildDashboardRows } from "./rows.js";
 
 interface DashboardState {
@@ -17,45 +17,148 @@ interface DashboardState {
   message: string | null;
 }
 
+interface DashboardRuntime {
+  config: DashboardConfig;
+  db: Database;
+  presenceId: string;
+  state: DashboardState;
+  terminal: ProcessTerminal;
+  tui: TUI;
+  component: DashboardComponent;
+  refreshTimer: NodeJS.Timeout;
+  presenceTimer: NodeJS.Timeout;
+  cleaned: boolean;
+}
+
 export function runDashboard(): void {
   const config = loadConfig();
   const db = openDatabase(config.databasePath);
   const presenceId = createPresenceId();
   const state: DashboardState = { rows: [], selected: 0, seenEvents: new Set(), message: null };
-  const refreshTimer = setInterval(() => refresh(db, config, state, true), 2_000);
-  const presenceTimer = setInterval(() => writeDashboardPresence(db, presenceId, process.env.TMUX_PANE ?? null), config.dashboardPresenceIntervalMs);
+  const terminal = new ProcessTerminal();
+  const tui = new TUI(terminal);
+  let runtime: DashboardRuntime;
 
-  setupTerminal();
-  writeDashboardPresence(db, presenceId, process.env.TMUX_PANE ?? null);
-  refresh(db, config, state, false);
-
-  let cleaned = false;
-  const cleanup = () => {
-    if (cleaned) return;
-    cleaned = true;
-    clearInterval(refreshTimer); clearInterval(presenceTimer);
-    removeDashboardPresence(db, presenceId);
-    teardownTerminal(); db.close();
+  const actions = createDashboardActions(() => runtime);
+  const component = new DashboardComponent(actions, () => terminal.rows);
+  runtime = {
+    config,
+    db,
+    presenceId,
+    state,
+    terminal,
+    tui,
+    component,
+    refreshTimer: setInterval(() => refresh(runtime, true), 2_000),
+    presenceTimer: setInterval(() => writeDashboardPresence(db, presenceId, process.env.TMUX_PANE ?? null), config.dashboardPresenceIntervalMs),
+    cleaned: false,
   };
-  process.on("exit", cleanup);
-  process.on("SIGINT", () => { cleanup(); process.exit(0); });
-  input.on("data", (chunk) => handleKey(chunk, db, config, state));
+
+  tui.addChild(component);
+  tui.setFocus(component);
+  writeDashboardPresence(db, presenceId, process.env.TMUX_PANE ?? null);
+  refresh(runtime, false);
+  tui.start();
+
+  const cleanupHandler = () => cleanup(runtime);
+  const sigintHandler = () => { cleanup(runtime); process.exit(0); };
+  process.on("exit", cleanupHandler);
+  process.on("SIGINT", sigintHandler);
 }
 
-function refresh(db: Database, config: DashboardConfig, state: DashboardState, beep: boolean): void {
-  state.rows = buildDashboardRows(readStatuses(db), listTmuxPanes(), config);
+function createDashboardActions(getRuntime: () => DashboardRuntime): DashboardActions {
+  return {
+    moveSelection: (delta) => moveSelection(getRuntime(), delta),
+    selectFirst: () => selectFirst(getRuntime()),
+    selectLast: () => selectLast(getRuntime()),
+    refresh: () => refreshFromInput(getRuntime()),
+    focusSelected: () => focusSelectedFromInput(getRuntime()),
+    dismissSelected: () => dismissSelectedFromInput(getRuntime()),
+    dismissAllRead: () => dismissAllReadFromInput(getRuntime()),
+    quit: () => quit(getRuntime()),
+  };
+}
+
+function cleanup(runtime: DashboardRuntime): void {
+  if (runtime.cleaned) return;
+  runtime.cleaned = true;
+  clearInterval(runtime.refreshTimer);
+  clearInterval(runtime.presenceTimer);
+  removeDashboardPresence(runtime.db, runtime.presenceId);
+  runtime.tui.stop();
+  runtime.db.close();
+}
+
+function refresh(runtime: DashboardRuntime, beep: boolean): void {
+  runtime.state.rows = buildDashboardRows(readStatuses(runtime.db), listTmuxPanes(), runtime.config);
+  clampSelection(runtime.state);
+  if (beep && runtime.config.dashboardBell) beepForNewEvents(runtime);
+  else rememberCurrentActionableEvents(runtime.state);
+  render(runtime);
+}
+
+function render(runtime: DashboardRuntime): void {
+  runtime.component.setSnapshot({ rows: runtime.state.rows, selected: runtime.state.selected, message: runtime.state.message });
+  runtime.tui.requestRender();
+}
+
+function moveSelection(runtime: DashboardRuntime, delta: number): void {
+  runtime.state.message = null;
+  const lastIndex = Math.max(0, runtime.state.rows.length - 1);
+  runtime.state.selected = Math.min(lastIndex, Math.max(0, runtime.state.selected + delta));
+  render(runtime);
+}
+
+function selectFirst(runtime: DashboardRuntime): void {
+  runtime.state.message = null;
+  runtime.state.selected = 0;
+  render(runtime);
+}
+
+function selectLast(runtime: DashboardRuntime): void {
+  runtime.state.message = null;
+  runtime.state.selected = Math.max(0, runtime.state.rows.length - 1);
+  render(runtime);
+}
+
+function refreshFromInput(runtime: DashboardRuntime): void {
+  runtime.state.message = null;
+  refresh(runtime, false);
+}
+
+function dismissSelectedFromInput(runtime: DashboardRuntime): void {
+  runtime.state.message = null;
+  dismissSelected(runtime.db, runtime.state);
+  refresh(runtime, false);
+}
+
+function dismissAllReadFromInput(runtime: DashboardRuntime): void {
+  runtime.state.message = null;
+  dismissAllRead(runtime.db, runtime.config.actionableStates);
+  refresh(runtime, false);
+}
+
+function focusSelectedFromInput(runtime: DashboardRuntime): void {
+  runtime.state.message = null;
+  focusSelected(runtime.db, runtime.state);
+  refresh(runtime, false);
+}
+
+function quit(runtime: DashboardRuntime): void {
+  cleanup(runtime);
+  process.exit(0);
+}
+
+function clampSelection(state: DashboardState): void {
   state.selected = Math.min(state.selected, Math.max(0, state.rows.length - 1));
-  if (beep && config.dashboardBell) beepForNewEvents(state);
-  else rememberCurrentActionableEvents(state);
-  render(state);
 }
 
-function beepForNewEvents(state: DashboardState): void {
-  for (const row of state.rows) {
+function beepForNewEvents(runtime: DashboardRuntime): void {
+  for (const row of runtime.state.rows) {
     const key = eventKey(row);
-    if (row.actionable && row.unread && !row.dismissed && !state.seenEvents.has(key)) {
-      output.write("\x07");
-      state.seenEvents.add(key);
+    if (row.actionable && row.unread && !row.dismissed && !runtime.state.seenEvents.has(key)) {
+      runtime.terminal.write("\x07");
+      runtime.state.seenEvents.add(key);
     }
   }
 }
@@ -68,26 +171,6 @@ function rememberCurrentActionableEvents(state: DashboardState): void {
 
 function eventKey(row: DashboardRow): string {
   return `${row.id}:${row.lastEventAt}`;
-}
-
-function render(state: DashboardState): void {
-  output.write("\x1b[2J\x1b[H");
-  output.write("pi-dash  Enter: focus/read  d/k: dismiss  D: dismiss read  r: refresh  q: quit\n\n");
-  output.write(renderRows(state.rows, state.selected));
-  if (state.message) output.write(`\n\n${state.message}`);
-  output.write("\n");
-}
-
-function handleKey(chunk: Buffer | string, db: Database, config: DashboardConfig, state: DashboardState): void {
-  const key = chunk.toString();
-  state.message = null;
-  if (key === "q" || key === "\u0003") process.exit(0);
-  if (key === "\u001b[A") state.selected = Math.max(0, state.selected - 1);
-  else if (key === "\u001b[B") state.selected = Math.min(Math.max(0, state.rows.length - 1), state.selected + 1);
-  else if (key === "d" || key === "k") dismissSelected(db, state);
-  else if (key === "D") dismissAllRead(db, config.actionableStates);
-  else if (key === "\r" || key === "\n") focusSelected(db, state);
-  refresh(db, config, state, false);
 }
 
 function dismissSelected(db: Database, state: DashboardState): void {
@@ -122,15 +205,4 @@ function findPaneForFocus(row: DashboardRow): TmuxPane | null {
 
 function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function setupTerminal(): void {
-  if (input.isTTY) input.setRawMode(true);
-  input.resume();
-  output.write("\x1b[?25l");
-}
-
-function teardownTerminal(): void {
-  output.write("\x1b[?25h\x1b[0m\n");
-  if (input.isTTY) input.setRawMode(false);
 }

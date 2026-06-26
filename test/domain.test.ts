@@ -3,12 +3,17 @@ import test from "node:test";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { visibleWidth } from "@earendil-works/pi-tui";
 import { DEFAULT_CONFIG } from "../src/config/config.ts";
 import { isActionableStatus, isUnreadStatus, type PiDashStatus } from "../src/domain/status.ts";
 import { openDatabase } from "../src/state/database.ts";
 import { readStatuses } from "../src/state/read-statuses.ts";
 import { dismissAllRead, dismissStatus, markRead, upsertStatus } from "../src/state/write-status.ts";
 import { parseTmuxPanes } from "../src/tmux/list-panes.ts";
+import { renderDashboardLines } from "../src/cli/dashboard-component.ts";
+import { getStateIcon } from "../src/cli/dashboard-icons.ts";
+import { chooseDashboardLayout } from "../src/cli/dashboard-layout.ts";
+import { DEFAULT_DASHBOARD_THEME } from "../src/cli/dashboard-theme.ts";
 import { buildDashboardRows } from "../src/cli/rows.ts";
 
 test("actionable/read/dismissed calculation", () => {
@@ -53,4 +58,37 @@ test("dashboard rows mark stale and hide dismissed", () => {
 
   const dismissedRows = buildDashboardRows([{ ...status, dismissedUntilEventAt: 100 }], [], { ...DEFAULT_CONFIG, showDismissedRows: false }, 100_000);
   assert.equal(dismissedRows.length, 0);
+});
+
+test("modern dashboard maps states to nerd font icons", () => {
+  assert.equal(getStateIcon("ASK"), "");
+  assert.equal(getStateIcon("ERROR"), "");
+  assert.equal(getStateIcon("DONE"), "");
+  assert.equal(getStateIcon("RUN"), "");
+  assert.equal(getStateIcon("QUEUED"), "󰔟");
+  assert.equal(getStateIcon("IDLE"), "󰒲");
+  assert.equal(getStateIcon("STALE"), "󰅖");
+});
+
+test("modern dashboard exposes Base16 semantic theme roles", () => {
+  assert.equal(DEFAULT_DASHBOARD_THEME.palette.base0D, "#74c0fc");
+  assert.match(DEFAULT_DASHBOARD_THEME.accent("x"), /38;2;116;192;252m/);
+  assert.match(DEFAULT_DASHBOARD_THEME.selectedSurface("x"), /48;2;36;42;51m/);
+});
+
+test("modern dashboard selects responsive layout modes", () => {
+  assert.equal(chooseDashboardLayout(140), "wide");
+  assert.equal(chooseDashboardLayout(90), "medium");
+  assert.equal(chooseDashboardLayout(60), "narrow");
+});
+
+test("modern dashboard render lines fit the provided width", () => {
+  const status: PiDashStatus = { id: "1", paneId: "%1", tmuxSession: "main", tmuxWindow: "api", tmuxWindowIndex: "2", pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "ASK", severity: "high", summary: "Need permission to edit a very long config path before continuing", lastEventAt: 1_000, heartbeatAt: 1_000 };
+  const rows = buildDashboardRows([status], [parseTmuxPanes("main\t2\tapi\t%1\t1\tbash\ttitle\t123\n")[0]!], DEFAULT_CONFIG, 2_000);
+
+  for (const width of [60, 90, 130]) {
+    const lines = renderDashboardLines({ rows, selected: 0, message: "Saved", width, height: 12, now: 2_000 });
+    assert.ok(lines.length <= 12);
+    assert.ok(lines.every((line) => visibleWidth(line) <= width), `line exceeded width ${width}: ${lines.join("\n")}`);
+  }
 });

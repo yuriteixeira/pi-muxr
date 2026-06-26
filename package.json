@@ -21,7 +21,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test --experimental-sqlite --import tsx test/*.test.ts"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@earendil-works/pi-tui": "^0.80.2"
+  },
   "devDependencies": {
     "@types/node": "latest",
     "tsx": "latest",

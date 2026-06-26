@@ -15,7 +15,7 @@ Usage:
   pi-dash --config     Print resolved config
   pi-dash --help       Show this help
 
-Keys: Enter focus/read, d/k dismiss, D dismiss all read, r refresh, q quit.
+Keys: ↑/↓ or j/k select, Enter focus/read, d dismiss, D dismiss all read, r refresh, q quit.
 `;
 
 function main(argv: string[]): void {

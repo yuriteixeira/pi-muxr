@@ -68,11 +68,13 @@ Defaults include actionable states `ASK`, `ERROR`, and `DONE`, desktop notificat
 
 ## Keys
 
+- `↑` / `k`: move selection up
+- `↓` / `j`: move selection down
 - `Enter`: mark selected current event as read and focus its tmux pane
-- `d` / `k`: dismiss selected current event
+- `d`: dismiss selected current event
 - `D`: dismiss all read actionable events
 - `r`: refresh
-- `q`: quit
+- `q` / `Esc` / `Ctrl+C`: quit
 
 ## Known limitations
 
