@@ -17,7 +17,7 @@ export const WEB_PAGE = `<!doctype html>
     button:disabled { cursor: not-allowed; opacity: 0.6; }
     .toolbar { align-items: center; display: flex; gap: 0.75rem; justify-content: space-between; }
     .status { color: #cbd5e1; font-size: 0.9rem; }
-    .terminal-container { background: #000; border: 1px solid #2d3342; border-radius: 10px; min-height: 0; overflow: hidden; padding: 0.4rem; }
+    .terminal-container { background: var(--terminal-background, #000); border: 1px solid #2d3342; border-radius: 10px; min-height: 0; overflow: hidden; padding: 0.4rem; }
     .terminal-container .xterm-viewport { scrollbar-width: none; }
     .terminal-container .xterm-viewport::-webkit-scrollbar { display: none; }
     .toasts { bottom: 1rem; display: grid; gap: 0.75rem; max-width: min(420px, calc(100vw - 2rem)); position: fixed; right: 1rem; z-index: 10; }
@@ -52,27 +52,37 @@ export const WEB_PAGE = `<!doctype html>
     const session = params.get('session') || 'pi-dash-web';
     document.getElementById('session-label').textContent = 'tmux: ' + session;
 
-    const terminal = new Terminal({ cursorBlink: true, convertEol: true, fontFamily: 'JetBrainsMono Nerd Font, JetBrains Mono, Menlo, Monaco, Consolas, monospace', fontSize: 14, theme: { background: '#000000' } });
-    const fitAddon = new FitAddon.FitAddon();
-    terminal.loadAddon(fitAddon);
-    terminal.open(terminalElement);
-
-    const socket = new WebSocket(buildTerminalUrl(session));
+    let terminal;
+    let fitAddon;
+    let socket;
     let animationFrame;
     let lastSize = { cols: 0, rows: 0 };
 
-    socket.addEventListener('open', () => { statusElement.textContent = 'Connected'; fitAndSync(); terminal.focus(); });
-    socket.addEventListener('message', (event) => handleServerMessage(JSON.parse(String(event.data))));
-    socket.addEventListener('close', () => { statusElement.textContent = 'Disconnected — refresh to reconnect.'; });
-    socket.addEventListener('error', () => { errorElement.textContent = ' Terminal websocket failed.'; });
-    terminal.onData((data) => send({ type: 'input', data }));
-
-    const resizeObserver = new ResizeObserver(fitAndSync);
-    resizeObserver.observe(terminalElement);
-    window.addEventListener('beforeunload', () => socket.close());
+    initializeTerminal();
     notificationsButton.addEventListener('click', requestNotifications);
     updateNotificationButton();
-    fitAndSync();
+
+    async function initializeTerminal() {
+      const terminalTheme = await loadTerminalTheme();
+      if (terminalTheme?.background) terminalElement.style.setProperty('--terminal-background', terminalTheme.background);
+
+      terminal = new Terminal({ cursorBlink: true, convertEol: true, fontFamily: 'JetBrainsMono Nerd Font, JetBrains Mono, Menlo, Monaco, Consolas, monospace', fontSize: 14, theme: terminalTheme });
+      fitAddon = new FitAddon.FitAddon();
+      terminal.loadAddon(fitAddon);
+      terminal.open(terminalElement);
+
+      socket = new WebSocket(buildTerminalUrl(session));
+      socket.addEventListener('open', () => { statusElement.textContent = 'Connected'; fitAndSync(); terminal.focus(); });
+      socket.addEventListener('message', (event) => handleServerMessage(JSON.parse(String(event.data))));
+      socket.addEventListener('close', () => { statusElement.textContent = 'Disconnected — refresh to reconnect.'; });
+      socket.addEventListener('error', () => { errorElement.textContent = ' Terminal websocket failed.'; });
+      terminal.onData((data) => send({ type: 'input', data }));
+
+      const resizeObserver = new ResizeObserver(fitAndSync);
+      resizeObserver.observe(terminalElement);
+      window.addEventListener('beforeunload', () => socket.close());
+      fitAndSync();
+    }
 
     function handleServerMessage(message) {
       if (message.type === 'output') terminal.write(message.data);
@@ -94,7 +104,7 @@ export const WEB_PAGE = `<!doctype html>
     }
 
     function fitAndSync() {
-      if (animationFrame !== undefined) return;
+      if (!terminal || !fitAddon || !socket || animationFrame !== undefined) return;
       animationFrame = requestAnimationFrame(() => {
         animationFrame = undefined;
         fitAddon.fit();
@@ -106,7 +116,17 @@ export const WEB_PAGE = `<!doctype html>
     }
 
     function send(message) {
-      if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
+      if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
+    }
+
+    async function loadTerminalTheme() {
+      try {
+        const response = await fetch('/api/terminal-theme');
+        const data = await response.json();
+        return data.theme || undefined;
+      } catch {
+        return undefined;
+      }
     }
 
     function buildTerminalUrl(sessionName) {

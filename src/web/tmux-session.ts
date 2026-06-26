@@ -3,6 +3,7 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 const SESSION_NAME_PATTERN = /^[A-Za-z0-9_.:-]+$/;
+const hiddenStatusSessions = new Map<string, { clients: number; previousStatus: string }>();
 
 export function isValidSessionName(name: string): boolean {
   return SESSION_NAME_PATTERN.test(name);
@@ -14,15 +15,28 @@ export async function ensurePiDashSession(session: string): Promise<void> {
   await execFileAsync("tmux", ["new-session", "-d", "-s", session, piDashCommand()]);
 }
 
-export async function hideTmuxStatus(session: string): Promise<string> {
+export async function hideTmuxStatus(session: string): Promise<void> {
+  const existing = hiddenStatusSessions.get(session);
+  if (existing) {
+    existing.clients += 1;
+    return;
+  }
+
   const { stdout } = await execFileAsync("tmux", ["show-options", "-t", session, "-v", "status"]);
   const previousStatus = stdout.trim() || "on";
   await execFileAsync("tmux", ["set-option", "-t", session, "status", "off"]);
-  return previousStatus;
+  hiddenStatusSessions.set(session, { clients: 1, previousStatus });
 }
 
-export function restoreTmuxStatus(session: string, previousStatus: string): void {
-  execFile("tmux", ["set-option", "-t", session, "status", previousStatus], () => {});
+export function restoreTmuxStatus(session: string): void {
+  const existing = hiddenStatusSessions.get(session);
+  if (!existing) return;
+
+  existing.clients -= 1;
+  if (existing.clients > 0) return;
+
+  hiddenStatusSessions.delete(session);
+  execFile("tmux", ["set-option", "-t", session, "status", existing.previousStatus], () => {});
 }
 
 async function hasSession(session: string): Promise<boolean> {

@@ -1,6 +1,7 @@
 import http from "node:http";
 import { WEB_PAGE } from "./page.js";
 import { readVendorAsset } from "./assets.js";
+import { getBase16TerminalTheme } from "./base16-theme.js";
 
 export interface WebServerOptions {
   host?: string;
@@ -24,9 +25,20 @@ async function startWebServer(options: WebServerOptions): Promise<void> {
 }
 
 function handleRequest(request: http.IncomingMessage, response: http.ServerResponse): void {
+  void routeRequest(request, response).catch((error: unknown) => {
+    send(response, 500, "application/json; charset=utf-8", JSON.stringify({ message: formatError(error) }));
+  });
+}
+
+async function routeRequest(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
   const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
   if (request.method !== "GET") {
     send(response, 405, "text/plain; charset=utf-8", "Method not allowed");
+    return;
+  }
+
+  if (url.pathname === "/api/terminal-theme") {
+    send(response, 200, "application/json; charset=utf-8", JSON.stringify({ theme: await getBase16TerminalTheme() }));
     return;
   }
 
@@ -47,4 +59,8 @@ function handleRequest(request: http.IncomingMessage, response: http.ServerRespo
 function send(response: http.ServerResponse, statusCode: number, contentType: string, body: string | Buffer): void {
   response.writeHead(statusCode, { "content-type": contentType });
   response.end(body);
+}
+
+function formatError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

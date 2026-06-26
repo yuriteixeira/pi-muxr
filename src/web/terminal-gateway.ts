@@ -37,10 +37,9 @@ async function attachTerminal(websocket: WebSocket, url: URL): Promise<void> {
     return;
   }
 
-  let previousStatus = "on";
   try {
     await ensurePiDashSession(session);
-    previousStatus = await hideTmuxStatus(session);
+    await hideTmuxStatus(session);
   } catch (error) {
     sendJson(websocket, { type: "error", message: formatError(error) });
     websocket.close();
@@ -65,14 +64,14 @@ async function attachTerminal(websocket: WebSocket, url: URL): Promise<void> {
     closed = true;
     clearInterval(notificationTimer);
     terminal.kill();
-    restoreTmuxStatus(session, previousStatus);
+    restoreTmuxStatus(session);
     db.close();
   };
   const release = () => {
     if (closed) return;
     closed = true;
     clearInterval(notificationTimer);
-    restoreTmuxStatus(session, previousStatus);
+    restoreTmuxStatus(session);
     db.close();
   };
 
