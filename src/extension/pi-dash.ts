@@ -40,8 +40,8 @@ export default function piDashExtension(pi: any): void {
 
   pi.on("agent_start", async (_event: unknown, ctx: any) => writeState(runtime, ctx, "RUN", "low", "agent started"));
   pi.on("turn_start", async (event: any, ctx: any) => writeState(runtime, ctx, "RUN", "low", `turn ${formatTurnIndex(event.turnIndex)} started`));
-  pi.on("tool_execution_start", async (event: any, ctx: any) => writeState(runtime, ctx, "RUN", "low", `tool: ${event.toolName} ${summarizeArgs(event.args)}`));
-  pi.on("tool_result", async (event: any) => { if (event.isError) runtime.lastError = `${event.toolName}: ${summarizeResult(event)}`; });
+  pi.on("tool_execution_start", async (event: any, ctx: any) => handleToolExecutionStart(runtime, event, ctx));
+  pi.on("tool_result", async (event: any, ctx: any) => handleToolResult(runtime, event, ctx));
   pi.on("agent_end", async (_event: unknown, ctx: any) => {
     if (runtime.lastError) {
       writeState(runtime, ctx, "ERROR", "high", runtime.lastError);
@@ -62,6 +62,24 @@ export default function piDashExtension(pi: any): void {
 function writeHeartbeat(runtime: RuntimeState, _ctx: any): void {
   if (!runtime.db || !runtime.id) return;
   updateHeartbeat(runtime.db, runtime.id);
+}
+
+function handleToolExecutionStart(runtime: RuntimeState, event: any, ctx: any): void {
+  if (event.toolName === "ask_user") {
+    writeState(runtime, ctx, "ASK", "high", summarizeAskUserRequest(event.args ?? event.input));
+    return;
+  }
+
+  writeState(runtime, ctx, "RUN", "low", `tool: ${event.toolName} ${summarizeArgs(event.args)}`);
+}
+
+function handleToolResult(runtime: RuntimeState, event: any, ctx: any): void {
+  if (event.toolName === "ask_user" && !event.isError) {
+    writeState(runtime, ctx, "RUN", "low", summarizeAskUserResult(event));
+    return;
+  }
+
+  if (event.isError) runtime.lastError = `${event.toolName}: ${summarizeResult(event)}`;
 }
 
 function writeState(runtime: RuntimeState, ctx: any, state: PiDashState, severity: PiDashStatus["severity"], summary: string): void {
@@ -141,11 +159,34 @@ function formatTurnIndex(turnIndex: unknown): string {
   return typeof turnIndex === "number" ? String(turnIndex + 1) : "?";
 }
 
+function summarizeAskUserRequest(input: unknown): string {
+  const question = extractAskQuestion(input);
+  return question ? `ask_user: ${truncate(question, 180)}` : "ask_user: waiting for input";
+}
+
+function summarizeAskUserResult(event: any): string {
+  if (event.details?.cancelled) return "ask_user: cancelled";
+  const response = event.details?.response;
+  if (response?.kind === "selection" && Array.isArray(response.selections)) return `ask_user answered: ${truncate(response.selections.join(", "), 160)}`;
+  if (response?.kind === "freeform" && typeof response.text === "string") return `ask_user answered: ${truncate(response.text, 160)}`;
+  return "ask_user answered";
+}
+
+function extractAskQuestion(input: unknown): string | null {
+  if (!input || typeof input !== "object") return null;
+  const question = (input as { question?: unknown }).question;
+  return typeof question === "string" && question.trim() ? question.trim() : null;
+}
+
 function summarizeArgs(args: unknown): string {
-  try { return JSON.stringify(args).slice(0, 120); } catch { return ""; }
+  try { return truncate(JSON.stringify(args), 120); } catch { return ""; }
 }
 
 function summarizeResult(event: any): string {
-  if (typeof event.content === "string") return event.content.slice(0, 200);
-  try { return JSON.stringify(event.content ?? event.details ?? {}).slice(0, 200); } catch { return "tool failed"; }
+  if (typeof event.content === "string") return truncate(event.content, 200);
+  try { return truncate(JSON.stringify(event.content ?? event.details ?? {}), 200); } catch { return "tool failed"; }
+}
+
+function truncate(value: string, max: number): string {
+  return value.length <= max ? value : `${value.slice(0, max - 1)}…`;
 }
