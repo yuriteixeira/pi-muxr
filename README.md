@@ -48,6 +48,8 @@ The symlink points at the built files in `dist`, so source changes require a reb
 
 The extension creates and updates rows in `~/.pi-dash/pi-dash.sqlite` and removes its row on clean shutdown.
 
+Wrappers around pi are supported as long as they load this extension. `pi-dash` does not require the tmux pane command to literally be named `pi`; rows are driven by extension state and tmux pane IDs.
+
 ## Web UI
 
 ```bash
