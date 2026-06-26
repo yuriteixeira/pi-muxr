@@ -190,9 +190,9 @@ function renderCard(row: DashboardRow, selected: boolean, width: number, now: nu
   const headerRight = border("╮");
   const fillWidth = Math.max(0, width - visibleWidth(headerLeft) - visibleWidth(headerRight));
   const header = `${headerLeft}${border("─".repeat(fillWidth))}${headerRight}`;
-  const project = `${border("│")} ${theme.muted(fitPlainCell(text.project, Math.max(0, width - 4)))} ${border("│")}`;
+  const project = `${border("│")} ${theme.muted(padPlainCell(text.project, Math.max(0, width - 4)))} ${border("│")}`;
   const summaryStyle = row.unread && row.actionable ? theme.bright : theme.text;
-  const summary = `${border("│")} ${summaryStyle(fitPlainCell(text.summary, Math.max(0, width - 4)))} ${border("│")}`;
+  const summary = `${border("│")} ${summaryStyle(padPlainCell(text.summary, Math.max(0, width - 4)))} ${border("│")}`;
   const bottom = `${border("╰")}${border("─".repeat(Math.max(0, width - 2)))}${border("╯")}`;
   return [fitCell(header, width), fitCell(project, width), fitCell(summary, width), fitCell(bottom, width)];
 }
@@ -260,6 +260,11 @@ function fitPlainCell(text: string, width: number, ellipsis = "…"): string {
     result += char;
   }
   return `${result}${ellipsis}`;
+}
+
+function padPlainCell(text: string, width: number, ellipsis = "…"): string {
+  const fitted = fitPlainCell(text, width, ellipsis);
+  return `${fitted}${" ".repeat(Math.max(0, width - visibleWidth(fitted)))}`;
 }
 
 function padBody(lines: RenderedBodyLine[], height: number, width: number): RenderedBodyLine[] {
