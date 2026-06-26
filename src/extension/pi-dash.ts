@@ -16,6 +16,11 @@ interface RuntimeState {
   model: string | null;
 }
 
+interface NotificationSnapshot {
+  state: PiDashState;
+  lastNotifiedEventAt: number | null;
+}
+
 export default function piDashExtension(pi: any): void {
   const runtime: RuntimeState = { config: loadConfig(), db: null, id: null, heartbeatTimer: null, lastError: null, model: null };
 
@@ -33,7 +38,8 @@ export default function piDashExtension(pi: any): void {
     writeState(runtime, ctx, "IDLE", "low", `model: ${runtime.model}`);
   });
 
-  pi.on("agent_start", async (_event: unknown, ctx: any) => writeState(runtime, ctx, "RUN", "low", "turn started"));
+  pi.on("agent_start", async (_event: unknown, ctx: any) => writeState(runtime, ctx, "RUN", "low", "agent started"));
+  pi.on("turn_start", async (event: any, ctx: any) => writeState(runtime, ctx, "RUN", "low", `turn ${formatTurnIndex(event.turnIndex)} started`));
   pi.on("tool_execution_start", async (event: any, ctx: any) => writeState(runtime, ctx, "RUN", "low", `tool: ${event.toolName} ${summarizeArgs(event.args)}`));
   pi.on("tool_result", async (event: any) => { if (event.isError) runtime.lastError = `${event.toolName}: ${summarizeResult(event)}`; });
   pi.on("agent_end", async (_event: unknown, ctx: any) => {
@@ -63,8 +69,9 @@ function writeState(runtime: RuntimeState, ctx: any, state: PiDashState, severit
   const now = Date.now();
   const pane = currentPane();
   const status = baseStatus(runtime, ctx, pane, state, severity, summary, now, true);
+  const notificationSnapshot = readNotificationSnapshot(runtime.db, status.id);
   upsertStatus(runtime.db, status);
-  maybeNotify(runtime, status);
+  maybeNotify(runtime, status, notificationSnapshot);
 }
 
 function baseStatus(runtime: RuntimeState, ctx: any, pane: TmuxPane | null, state: PiDashState, severity: PiDashStatus["severity"], summary: string, now: number, event: boolean): PiDashStatus {
@@ -86,14 +93,20 @@ function baseStatus(runtime: RuntimeState, ctx: any, pane: TmuxPane | null, stat
   };
 }
 
-function maybeNotify(runtime: RuntimeState, status: PiDashStatus): void {
+function maybeNotify(runtime: RuntimeState, status: PiDashStatus, snapshot: NotificationSnapshot | null): void {
   if (!runtime.db || !runtime.config.desktopNotifications) return;
   if (!DEFAULT_ACTIONABLE_STATES.includes(status.state)) return;
+  if (snapshot?.state === status.state) return;
   if (runtime.config.suppressDesktopNotificationsWhenDashboardOpen && hasFreshDashboardPresence(runtime.db, runtime.config.dashboardPresenceStaleAfterMs)) return;
-  const existing = runtime.db.prepare("SELECT last_notified_event_at FROM sessions WHERE id = ?").get(status.id) as { last_notified_event_at?: number | null } | undefined;
-  if ((existing?.last_notified_event_at ?? 0) >= status.lastEventAt) return;
+  if ((snapshot?.lastNotifiedEventAt ?? 0) >= status.lastEventAt) return;
   notifyStatus(status);
   markNotified(runtime.db, status.id, status.lastEventAt);
+}
+
+function readNotificationSnapshot(db: Database, id: string): NotificationSnapshot | null {
+  const row = db.prepare("SELECT state, last_notified_event_at FROM sessions WHERE id = ?").get(id) as { state?: PiDashState; last_notified_event_at?: number | null } | undefined;
+  if (!row?.state) return null;
+  return { state: row.state, lastNotifiedEventAt: row.last_notified_event_at ?? null };
 }
 
 function createSessionId(ctx: any): string {
@@ -122,6 +135,10 @@ function formatModel(model: any): string | null {
 function startSummary(ctx: any): string {
   const model = formatModel(ctx.model);
   return model ? `session started (${model})` : "session started";
+}
+
+function formatTurnIndex(turnIndex: unknown): string {
+  return typeof turnIndex === "number" ? String(turnIndex + 1) : "?";
 }
 
 function summarizeArgs(args: unknown): string {

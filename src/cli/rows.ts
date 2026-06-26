@@ -5,7 +5,7 @@ import { sortDashboardRows } from "../domain/sorting.js";
 export function buildDashboardRows(statuses: PiDashStatus[], panes: TmuxPane[], config: DashboardConfig, now = Date.now()): DashboardRow[] {
   const panesById = new Map(panes.map((pane) => [pane.paneId, pane]));
   const rows = statuses.map((status) => toDashboardRow(status, panesById, config, now));
-  return sortDashboardRows(rows).filter((row) => config.showDismissedRows || !row.dismissed || row.displayState === "STALE");
+  return sortDashboardRows(rows).filter((row) => config.showDismissedRows || !row.dismissed);
 }
 
 function toDashboardRow(status: PiDashStatus, panesById: Map<string, TmuxPane>, config: DashboardConfig, now: number): DashboardRow {

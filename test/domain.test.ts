@@ -36,8 +36,21 @@ test("sqlite status markers", () => {
   db.close();
 });
 
+test("dismiss all read honors configured actionable states", () => {
+  const db = openDatabase(join(mkdtempSync(join(tmpdir(), "pi-dash-")), "db.sqlite"));
+  const status: PiDashStatus = { id: "1", paneId: "%1", tmuxSession: "s", tmuxWindow: "w", tmuxWindowIndex: "0", pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "RUN", severity: "low", summary: "run", lastEventAt: 100, heartbeatAt: 100, readUntilEventAt: 100 };
+  upsertStatus(db, status);
+  assert.equal(dismissAllRead(db), 0);
+  assert.equal(dismissAllRead(db, ["RUN"]), 1);
+  assert.equal(readStatuses(db)[0]?.dismissedUntilEventAt, 100);
+  db.close();
+});
+
 test("dashboard rows mark stale and hide dismissed", () => {
   const status: PiDashStatus = { id: "1", paneId: "%missing", tmuxSession: null, tmuxWindow: null, tmuxWindowIndex: null, pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "DONE", severity: "medium", summary: "done", lastEventAt: 100, heartbeatAt: 100 };
   const rows = buildDashboardRows([status], [], { ...DEFAULT_CONFIG, showDismissedRows: false }, 100_000);
   assert.equal(rows[0]?.displayState, "STALE");
+
+  const dismissedRows = buildDashboardRows([{ ...status, dismissedUntilEventAt: 100 }], [], { ...DEFAULT_CONFIG, showDismissedRows: false }, 100_000);
+  assert.equal(dismissedRows.length, 0);
 });

@@ -1,4 +1,5 @@
-import type { PiDashStatus } from "../domain/status.js";
+import type { PiDashState, PiDashStatus } from "../domain/status.js";
+import { DEFAULT_ACTIONABLE_STATES } from "../domain/status.js";
 import type { Database } from "./database.js";
 
 export type StatusInput = Omit<PiDashStatus, "readUntilEventAt" | "acknowledgedAt" | "dismissedUntilEventAt" | "lastNotifiedEventAt"> & Partial<Pick<PiDashStatus, "readUntilEventAt" | "acknowledgedAt" | "dismissedUntilEventAt" | "lastNotifiedEventAt">>;
@@ -44,14 +45,18 @@ export function dismissStatus(db: Database, id: string, lastEventAt: number, at 
   db.prepare("UPDATE sessions SET dismissed_until_event_at = ?, acknowledged_at = ? WHERE id = ?").run(lastEventAt, at, id);
 }
 
-export function dismissAllRead(db: Database, at = Date.now()): number {
+export function dismissAllRead(db: Database, actionableStatesOrAt: PiDashState[] | number = DEFAULT_ACTIONABLE_STATES, at = Date.now()): number {
+  const actionableStates = Array.isArray(actionableStatesOrAt) ? actionableStatesOrAt : DEFAULT_ACTIONABLE_STATES;
+  const acknowledgedAt = Array.isArray(actionableStatesOrAt) ? at : actionableStatesOrAt;
+  if (actionableStates.length === 0) return 0;
+  const placeholders = actionableStates.map(() => "?").join(", ");
   const result = db.prepare(`
     UPDATE sessions
     SET dismissed_until_event_at = last_event_at, acknowledged_at = ?
-    WHERE state IN ('ASK', 'ERROR', 'DONE')
+    WHERE state IN (${placeholders})
       AND COALESCE(read_until_event_at, 0) >= last_event_at
       AND COALESCE(dismissed_until_event_at, 0) < last_event_at
-  `).run(at);
+  `).run(acknowledgedAt, ...actionableStates);
   return Number(result.changes ?? 0);
 }
 
