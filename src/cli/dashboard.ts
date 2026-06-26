@@ -49,7 +49,7 @@ export function runDashboard(): void {
     terminal,
     tui,
     component,
-    refreshTimer: setInterval(() => refresh(runtime, true), 2_000),
+    refreshTimer: setInterval(() => refresh(runtime, true), 1_000),
     presenceTimer: setInterval(() => writeDashboardPresence(db, presenceId, process.env.TMUX_PANE ?? null), config.dashboardPresenceIntervalMs),
     cleaned: false,
   };

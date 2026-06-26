@@ -14,6 +14,7 @@ interface RuntimeState {
   heartbeatTimer: NodeJS.Timeout | null;
   lastError: string | null;
   model: string | null;
+  handledToolCallIds: Set<string>;
 }
 
 interface NotificationSnapshot {
@@ -22,7 +23,7 @@ interface NotificationSnapshot {
 }
 
 export default function piDashExtension(pi: any): void {
-  const runtime: RuntimeState = { config: loadConfig(), db: null, id: null, heartbeatTimer: null, lastError: null, model: null };
+  const runtime: RuntimeState = { config: loadConfig(), db: null, id: null, heartbeatTimer: null, lastError: null, model: null, handledToolCallIds: new Set() };
 
   pi.on("session_start", async (_event: unknown, ctx: any) => {
     runtime.config = loadConfig();
@@ -38,9 +39,13 @@ export default function piDashExtension(pi: any): void {
     writeState(runtime, ctx, "IDLE", "low", `model: ${runtime.model}`);
   });
 
-  pi.on("agent_start", async (_event: unknown, ctx: any) => writeState(runtime, ctx, "RUN", "low", "agent started"));
+  pi.on("agent_start", async (_event: unknown, ctx: any) => {
+    runtime.handledToolCallIds.clear();
+    writeState(runtime, ctx, "RUN", "low", "agent started");
+  });
   pi.on("turn_start", async (event: any, ctx: any) => writeState(runtime, ctx, "RUN", "low", `turn ${formatTurnIndex(event.turnIndex)} started`));
-  pi.on("tool_execution_start", async (event: any, ctx: any) => handleToolExecutionStart(runtime, event, ctx));
+  pi.on("tool_call", async (event: any, ctx: any) => handleToolCall(runtime, event, ctx));
+  pi.on("tool_execution_start", async (event: any, ctx: any) => handleToolCall(runtime, event, ctx));
   pi.on("tool_result", async (event: any, ctx: any) => handleToolResult(runtime, event, ctx));
   pi.on("agent_end", async (_event: unknown, ctx: any) => {
     if (runtime.lastError) {
@@ -64,13 +69,18 @@ function writeHeartbeat(runtime: RuntimeState, _ctx: any): void {
   updateHeartbeat(runtime.db, runtime.id);
 }
 
-function handleToolExecutionStart(runtime: RuntimeState, event: any, ctx: any): void {
+function handleToolCall(runtime: RuntimeState, event: any, ctx: any): void {
+  const toolCallId = typeof event.toolCallId === "string" ? event.toolCallId : null;
+  if (toolCallId && runtime.handledToolCallIds.has(toolCallId)) return;
+  if (toolCallId) runtime.handledToolCallIds.add(toolCallId);
+
+  const input = event.input ?? event.args;
   if (event.toolName === "ask_user") {
-    writeState(runtime, ctx, "ASK", "high", summarizeAskUserRequest(event.args ?? event.input));
+    writeState(runtime, ctx, "ASK", "high", summarizeAskUserRequest(input));
     return;
   }
 
-  writeState(runtime, ctx, "RUN", "low", `tool: ${event.toolName} ${summarizeArgs(event.args)}`);
+  writeState(runtime, ctx, "RUN", "low", `tool: ${event.toolName}${summarizeToolInput(event.toolName, input)}`);
 }
 
 function handleToolResult(runtime: RuntimeState, event: any, ctx: any): void {
@@ -178,8 +188,14 @@ function extractAskQuestion(input: unknown): string | null {
   return typeof question === "string" && question.trim() ? question.trim() : null;
 }
 
-function summarizeArgs(args: unknown): string {
-  try { return truncate(JSON.stringify(args), 120); } catch { return ""; }
+function summarizeToolInput(toolName: string, input: unknown): string {
+  if (!input || typeof input !== "object") return "";
+  const record = input as Record<string, unknown>;
+  if (toolName === "bash" && typeof record.command === "string") return `: ${truncate(record.command, 160)}`;
+  if (typeof record.path === "string") return `: ${truncate(record.path, 160)}`;
+  if (typeof record.url === "string") return `: ${truncate(record.url, 160)}`;
+  if (typeof record.query === "string") return `: ${truncate(record.query, 160)}`;
+  try { return ` ${truncate(JSON.stringify(input), 120)}`; } catch { return ""; }
 }
 
 function summarizeResult(event: any): string {

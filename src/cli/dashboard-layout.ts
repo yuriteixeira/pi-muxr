@@ -37,11 +37,15 @@ export function getVisibleRowRange(totalRows: number, selected: number, maxRows:
 
 export function toRowText(row: DashboardRow, now = Date.now()): RowText {
   return {
-    age: formatAge(now - row.lastEventAt),
+    age: shouldRunRowTimer(row) ? formatAge(now - row.lastEventAt) : "",
     pane: formatPane(row),
     project: shortenPath(row.cwd),
     summary: row.summary,
   };
+}
+
+function shouldRunRowTimer(row: DashboardRow): boolean {
+  return row.displayState === "RUN" || row.displayState === "ASK" || row.displayState === "QUEUED";
 }
 
 export function formatPane(row: DashboardRow): string {

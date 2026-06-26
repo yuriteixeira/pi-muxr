@@ -159,14 +159,17 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
   const summaryStyle = row.unread && row.actionable ? theme.bright : theme.text;
 
   if (mode === "wide") {
-    const summaryWidth = Math.max(10, width - 2 - 12 - 6 - 26 - 24 - 4);
+    const panePathGap = "  ";
+    const availableSummaryWidth = Math.max(10, width - 79);
+    const summaryWidth = Math.min(availableSummaryWidth, Math.floor(width * 0.3));
+    const summaryOffset = " ".repeat(Math.max(0, availableSummaryWidth - summaryWidth));
     return [
       fitCell(`${indicator} ${unread}`, 4),
       fitCell(state, 12),
       fitCell(age, 6),
-      theme.info(fitPlainCell(`${panePrefix}${text.pane}`, 26)),
-      theme.muted(fitPlainCell(text.project, 24)),
-      summaryStyle(fitPlainCell(text.summary, summaryWidth)),
+      `${theme.info(fitPlainCell(`${panePrefix}${text.pane}`, 26))}${panePathGap}`,
+      theme.muted(fitPlainCellEnd(text.project, 24)),
+      `${summaryOffset}${summaryStyle(padPlainCellStart(text.summary, summaryWidth))}`,
     ].join(" ");
   }
 
@@ -176,7 +179,7 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
     fitCell(state, 12),
     fitCell(age, 6),
     theme.info(fitPlainCell(text.pane, 20)),
-    summaryStyle(fitPlainCell(text.summary, summaryWidth)),
+    summaryStyle(padPlainCellStart(text.summary, summaryWidth)),
   ].join(" ");
 }
 
@@ -190,7 +193,7 @@ function renderCard(row: DashboardRow, selected: boolean, width: number, now: nu
   const headerRight = border("╮");
   const fillWidth = Math.max(0, width - visibleWidth(headerLeft) - visibleWidth(headerRight));
   const header = `${headerLeft}${border("─".repeat(fillWidth))}${headerRight}`;
-  const project = `${border("│")} ${theme.muted(padPlainCell(text.project, Math.max(0, width - 4)))} ${border("│")}`;
+  const project = `${border("│")} ${theme.muted(padPlainCellEnd(text.project, Math.max(0, width - 4)))} ${border("│")}`;
   const summaryStyle = row.unread && row.actionable ? theme.bright : theme.text;
   const summary = `${border("│")} ${summaryStyle(padPlainCell(text.summary, Math.max(0, width - 4)))} ${border("│")}`;
   const bottom = `${border("╰")}${border("─".repeat(Math.max(0, width - 2)))}${border("╯")}`;
@@ -262,8 +265,31 @@ function fitPlainCell(text: string, width: number, ellipsis = "…"): string {
   return `${result}${ellipsis}`;
 }
 
+function fitPlainCellEnd(text: string, width: number, ellipsis = "…"): string {
+  if (width <= 0) return "";
+  if (visibleWidth(text) <= width) return text;
+  const ellipsisWidth = visibleWidth(ellipsis);
+  const targetWidth = Math.max(0, width - ellipsisWidth);
+  let result = "";
+  for (const char of [...text].reverse()) {
+    if (visibleWidth(char + result) > targetWidth) break;
+    result = char + result;
+  }
+  return `${ellipsis}${result}`;
+}
+
 function padPlainCell(text: string, width: number, ellipsis = "…"): string {
   const fitted = fitPlainCell(text, width, ellipsis);
+  return `${fitted}${" ".repeat(Math.max(0, width - visibleWidth(fitted)))}`;
+}
+
+function padPlainCellStart(text: string, width: number, ellipsis = "…"): string {
+  const fitted = fitPlainCell(text, width, ellipsis);
+  return `${" ".repeat(Math.max(0, width - visibleWidth(fitted)))}${fitted}`;
+}
+
+function padPlainCellEnd(text: string, width: number, ellipsis = "…"): string {
+  const fitted = fitPlainCellEnd(text, width, ellipsis);
   return `${fitted}${" ".repeat(Math.max(0, width - visibleWidth(fitted)))}`;
 }
 
