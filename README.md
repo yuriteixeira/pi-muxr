@@ -1,97 +1,33 @@
-# pi-dash
+# pi dash
 
-`pi-dash` is a tmux-native dashboard for active pi coding-agent sessions. A pi extension writes structured session state to SQLite, and the CLI/TUI reads that state, sorts actionable sessions first, and jumps to the owning tmux pane.
+`pi dash` is a dashboard for Pi coding sessions that run in tmux.
 
-## Install / link for development
+A Pi extension publishes session state and the dashboard shows which sessions need attention and focuses their respective tmux panes.
 
-```bash
-pnpm install
-pnpm build
-pnpm link --global
-```
+## Features
 
-`pnpm link --global` exposes this local checkout's `pi-dash` binary globally, so you can run `pi-dash` from any directory. It points at `./dist/cli/index.js`, so rebuild after source changes with `pnpm build` or keep `pnpm start` running in another terminal.
+- Tracks multiple Pi sessions across tmux.
+- Shows `ASK`, `ERROR`, `DONE`, `RUN`, `IDLE`, and `STALE` states.
+- Sorts actionable sessions first.
+- Focuses the owning tmux pane from the keyboard.
+- Supports read and dismiss actions.
+- Detects stale sessions with heartbeats and pane checks.
+- Provides terminal and browser interfaces.
+- Sends terminal bell, desktop, and browser notifications.
+- Supports configurable actionable states and notification behavior.
 
-The CLI requires Node.js 24+ and uses the built-in `node:sqlite` module. During development, use:
-
-```bash
-pnpm typecheck
-pnpm test
-pnpm start       # build in watch mode
-```
-
-Run the CLI with:
+## Usage
 
 ```bash
-pi-dash --help
-pi-dash --list
 pi-dash
+pi-dash --list
 pi-dash --web
 ```
 
-## Enable the pi extension
+The browser interface runs at `http://127.0.0.1:3042` by default.
 
-Build this package, then symlink the built extension directory into pi's global extensions directory:
+## Development Documentation
 
-```bash
-pnpm build
-mkdir -p ~/.pi/agent/extensions
-rm -f ~/.pi/agent/extensions/pi-dash.js ~/.pi/agent/extensions/pi-dash
-ln -sfn "$PWD/dist/extension" ~/.pi/agent/extensions/pi-dash
-```
-
-The directory symlink is important: the built extension imports sibling modules from `dist`, so symlinking only `dist/extension/pi-dash.js` will break relative imports.
-
-After that, normal `pi` sessions will auto-load `pi-dash`. If pi is already open, run `/reload` in pi after creating or updating the symlink.
-
-The symlink points at the built files in `dist`, so source changes require a rebuild. Use `pnpm build` once, or keep `pnpm start` running while developing.
-
-The extension creates and updates rows in `~/.pi-dash/pi-dash.sqlite` and removes its row on clean shutdown.
-
-Wrappers around pi are supported as long as they load this extension. `pi-dash` does not require the tmux pane command to literally be named `pi`; rows are driven by extension state and tmux pane IDs.
-
-## Web UI
-
-```bash
-pi-dash --web
-# open http://127.0.0.1:3042
-```
-
-The web UI starts or reuses a `pi-dash-web` tmux session running `pi-dash`, attaches it to an xterm.js terminal, and forwards keyboard input/resizes through node-pty. It also shows browser toasts for new unread actionable rows (`ASK`, `ERROR`, `DONE` by default); click **Enable notifications** to allow native browser notifications.
-
-Set `HOST`, `PORT`, or `?session=your-session-name` to customize the bind address or tmux session.
-
-## tmux popup binding
-
-```tmux
-bind-key P display-popup -E "pi-dash"
-```
-
-## Configuration
-
-Optional config file: `~/.pi-dash/config.json`. If it is missing, built-in defaults are used.
-
-An example config is available at [`examples/config.json`](examples/config.json). To start from it:
-
-```bash
-mkdir -p ~/.pi-dash
-cp examples/config.json ~/.pi-dash/config.json
-```
-
-Defaults include actionable states `ASK`, `ERROR`, and `DONE`, desktop notifications enabled, dashboard bell enabled, dismissed rows hidden, 30s stale threshold, and 5s extension heartbeat.
-
-## Keys
-
-- `↑` / `k`: move selection up
-- `↓` / `j`: move selection down
-- `Enter`: mark selected current event as read and focus its tmux pane
-- `d`: dismiss selected current event
-- `D`: dismiss all read actionable events
-- `r`: refresh
-- `q` / `Esc` / `Ctrl+C`: quit
-
-## Known limitations
-
-- The TUI is intentionally minimal.
-- Desktop notifications are best-effort (`notify-send` on Linux, `osascript` on macOS).
-- The web UI is intentionally single-session oriented.
+- [Architecture](docs/ARCHITECTURE.md)
+- [Building and local setup](docs/BUILDING.md)
+- [Contributing](docs/CONTRIBUTING.md)
