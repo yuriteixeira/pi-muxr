@@ -1,4 +1,4 @@
-import { ProcessTerminal, TUI } from "@earendil-works/pi-tui";
+import { ProcessTerminal, TuiAltScreen, type TUI } from "@earendil-works/pi-tui";
 import { loadConfig } from "../config/config.js";
 import type { DashboardConfig, DashboardRow, TmuxPane } from "../domain/status.js";
 import { createPresenceId, removeDashboardPresence, writeDashboardPresence } from "../state/dashboard-presence.js";
@@ -36,7 +36,7 @@ export function runDashboard(): void {
   const presenceId = createPresenceId();
   const state: DashboardState = { rows: [], selected: 0, seenEvents: new Set(), message: null };
   const terminal = new ProcessTerminal();
-  const tui = new TUI(terminal);
+  const tui = new TuiAltScreen(terminal);
   let runtime: DashboardRuntime;
 
   const actions = createDashboardActions(() => runtime);
