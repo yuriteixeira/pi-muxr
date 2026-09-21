@@ -88,11 +88,15 @@ test("modern dashboard maps states to nerd font icons", () => {
   assert.equal(getStateIcon("STALE"), "󰅖");
 });
 
-test("modern dashboard exposes Base16 semantic theme roles", () => {
-  assert.equal(DEFAULT_DASHBOARD_THEME.palette.base0D, "#74c0fc");
-  assert.match(DEFAULT_DASHBOARD_THEME.accent("x"), /38;2;116;192;252m/);
+test("modern dashboard uses named Base16 roles with ANSI 16 colors", () => {
+  assert.equal(DEFAULT_DASHBOARD_THEME.palette.base0D, 12);
+  assert.equal(DEFAULT_DASHBOARD_THEME.accent("x"), "\x1b[94mx\x1b[39m");
   assert.equal(DEFAULT_DASHBOARD_THEME.surface("x"), "x");
-  assert.match(DEFAULT_DASHBOARD_THEME.selectedSurface("x"), /48;2;23;27;33m/);
+  assert.equal(DEFAULT_DASHBOARD_THEME.selectedSurface("x"), "\x1b[100mx\x1b[49m");
+
+  const { palette: _palette, ...roles } = DEFAULT_DASHBOARD_THEME;
+  const renderedRoles = Object.values(roles).map((style) => style("x")).join("");
+  assert.doesNotMatch(renderedRoles, /\x1b\[(?:38|48);(?:2|5);/);
 });
 
 test("modern dashboard selects responsive layout modes", () => {

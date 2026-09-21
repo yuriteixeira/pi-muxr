@@ -1,22 +1,24 @@
 export type StyleFn = (text: string) => string;
 
+export type AnsiColor = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
+
 export interface Base16Palette {
-  base00: string;
-  base01: string;
-  base02: string;
-  base03: string;
-  base04: string;
-  base05: string;
-  base06: string;
-  base07: string;
-  base08: string;
-  base09: string;
-  base0A: string;
-  base0B: string;
-  base0C: string;
-  base0D: string;
-  base0E: string;
-  base0F: string;
+  base00: AnsiColor;
+  base01: AnsiColor;
+  base02: AnsiColor;
+  base03: AnsiColor;
+  base04: AnsiColor;
+  base05: AnsiColor;
+  base06: AnsiColor;
+  base07: AnsiColor;
+  base08: AnsiColor;
+  base09: AnsiColor;
+  base0A: AnsiColor;
+  base0B: AnsiColor;
+  base0C: AnsiColor;
+  base0D: AnsiColor;
+  base0E: AnsiColor;
+  base0F: AnsiColor;
 }
 
 export interface DashboardTheme {
@@ -38,22 +40,22 @@ export interface DashboardTheme {
 }
 
 export const DEFAULT_BASE16_PALETTE: Base16Palette = {
-  base00: "#101317",
-  base01: "#171b21",
-  base02: "#242a33",
-  base03: "#3a424d",
-  base04: "#7d8794",
-  base05: "#c9d1d9",
-  base06: "#e6edf3",
-  base07: "#ffffff",
-  base08: "#ff6b6b",
-  base09: "#f59f00",
-  base0A: "#ffd43b",
-  base0B: "#69db7c",
-  base0C: "#66d9e8",
-  base0D: "#74c0fc",
-  base0E: "#b197fc",
-  base0F: "#ffa94d",
+  base00: 0,
+  base01: 8,
+  base02: 8,
+  base03: 8,
+  base04: 8,
+  base05: 7,
+  base06: 15,
+  base07: 15,
+  base08: 9,
+  base09: 3,
+  base0A: 11,
+  base0B: 10,
+  base0C: 14,
+  base0D: 12,
+  base0E: 13,
+  base0F: 3,
 };
 
 export const DEFAULT_DASHBOARD_THEME = createDashboardTheme(DEFAULT_BASE16_PALETTE);
@@ -61,31 +63,31 @@ export const DEFAULT_DASHBOARD_THEME = createDashboardTheme(DEFAULT_BASE16_PALET
 export function createDashboardTheme(palette: Base16Palette): DashboardTheme {
   return {
     palette,
-    background: bg(palette.base00),
+    background: ansiBackground(palette.base00),
     surface: identity,
-    selectedSurface: bg(palette.base01),
-    border: fg(palette.base03),
-    muted: fg(palette.base04),
-    text: fg(palette.base05),
-    bright: compose(fg(palette.base06), bold),
-    accent: fg(palette.base0D),
-    success: fg(palette.base0B),
-    warning: fg(palette.base0A),
-    error: fg(palette.base08),
-    info: fg(palette.base0C),
-    purple: fg(palette.base0E),
-    stale: fg(palette.base04),
+    selectedSurface: ansiBackground(palette.base01),
+    border: ansiForeground(palette.base03),
+    muted: ansiForeground(palette.base04),
+    text: ansiForeground(palette.base05),
+    bright: compose(ansiForeground(palette.base06), bold),
+    accent: ansiForeground(palette.base0D),
+    success: ansiForeground(palette.base0B),
+    warning: ansiForeground(palette.base0A),
+    error: ansiForeground(palette.base08),
+    info: ansiForeground(palette.base0C),
+    purple: ansiForeground(palette.base0E),
+    stale: ansiForeground(palette.base04),
   };
 }
 
-export function fg(hex: string): StyleFn {
-  const [r, g, b] = parseHex(hex);
-  return (text) => `\x1b[38;2;${r};${g};${b}m${text}\x1b[39m`;
+export function ansiForeground(color: AnsiColor): StyleFn {
+  const code = color < 8 ? 30 + color : 82 + color;
+  return (text) => `\x1b[${code}m${text}\x1b[39m`;
 }
 
-export function bg(hex: string): StyleFn {
-  const [r, g, b] = parseHex(hex);
-  return (text) => `\x1b[48;2;${r};${g};${b}m${text}\x1b[49m`;
+export function ansiBackground(color: AnsiColor): StyleFn {
+  const code = color < 8 ? 40 + color : 92 + color;
+  return (text) => `\x1b[${code}m${text}\x1b[49m`;
 }
 
 export function bold(text: string): string {
@@ -98,10 +100,4 @@ function compose(...styles: StyleFn[]): StyleFn {
 
 function identity(text: string): string {
   return text;
-}
-
-function parseHex(hex: string): [number, number, number] {
-  const value = hex.startsWith("#") ? hex.slice(1) : hex;
-  if (!/^[0-9a-fA-F]{6}$/.test(value)) return [255, 255, 255];
-  return [Number.parseInt(value.slice(0, 2), 16), Number.parseInt(value.slice(2, 4), 16), Number.parseInt(value.slice(4, 6), 16)];
 }
