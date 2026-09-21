@@ -137,26 +137,25 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
   const text = toRowText(row, now);
   const visual = getStateVisual(row.displayState, theme);
   const indicator = selected ? theme.accent("┃") : " ";
-  const unread = row.unread ? theme.warning("●") : theme.muted("·");
-  const state = visual.style(`${visual.icon} ${visual.label}`);
+  const state = visual.style(`${indicator} ${visual.icon} ${visual.label}`);
   const summaryStyle = row.unread && row.actionable ? theme.bright : theme.text;
   const innerWidth = Math.max(0, width);
   const columns = mode === "wide"
-    ? { session: 22, project: 24, state: 11, age: 6, pane: 22 }
+    ? { session: 22, project: 24, age: 6, pane: 22 }
     : mode === "medium"
-      ? { session: 18, project: 22, state: 11, age: 6, pane: 0 }
+      ? { session: 18, project: 22, age: 6, pane: 0 }
       : innerWidth >= 46
-        ? { session: 14, project: 18, state: 11, age: 0, pane: 0 }
-        : { session: 12, project: 14, state: 0, age: 0, pane: 0 };
-  const fixedWidth = 4 + columns.session + columns.project + columns.state + columns.age + columns.pane;
-  const separatorWidth = [4, columns.session, columns.project, columns.state, columns.age, columns.pane].filter((value) => value > 0).length - 1;
+        ? { session: 14, project: 18, age: 0, pane: 0 }
+        : { session: 12, project: 14, age: 0, pane: 0 };
+  const statusWidth = 11;
+  const fixedWidth = statusWidth + columns.session + columns.project + columns.age + columns.pane;
+  const separatorWidth = [statusWidth, columns.session, columns.project, columns.age, columns.pane].filter((value) => value > 0).length - 1;
   const summaryWidth = Math.max(0, innerWidth - fixedWidth - separatorWidth);
   const cells = [
-    padCell(`${indicator} ${unread}`, 4),
+    padCell(state, statusWidth),
     padCell(theme.info(text.session), columns.session),
     padCell(theme.muted(fitPlainCellEnd(text.project, columns.project)), columns.project),
   ];
-  if (columns.state > 0) cells.push(padCell(state, columns.state));
   if (columns.age > 0) cells.push(padCell(theme.muted(text.age), columns.age));
   if (columns.pane > 0) cells.push(padCell(theme.info(text.pane), columns.pane));
   if (summaryWidth > 0) cells.push(summaryStyle(fitPlainCell(text.summary, summaryWidth)));
