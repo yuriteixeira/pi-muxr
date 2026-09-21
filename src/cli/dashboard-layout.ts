@@ -9,6 +9,7 @@ export interface RowText {
   age: string;
   pane: string;
   project: string;
+  session: string;
   summary: string;
 }
 
@@ -40,6 +41,7 @@ export function toRowText(row: DashboardRow, now = Date.now()): RowText {
     age: shouldRunRowTimer(row) ? formatAge(now - row.lastEventAt) : "",
     pane: formatPane(row),
     project: shortenPath(row.cwd),
+    session: row.pane?.sessionName ?? row.tmuxSession ?? "?",
     summary: row.summary,
   };
 }

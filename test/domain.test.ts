@@ -52,10 +52,10 @@ test("dismiss all read honors configured actionable states", () => {
   db.close();
 });
 
-test("dashboard rows mark stale and hide dismissed", () => {
+test("dashboard rows only include active sessions and hide dismissed rows", () => {
   const status: PiDashStatus = { id: "1", paneId: "%missing", tmuxSession: null, tmuxWindow: null, tmuxWindowIndex: null, pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "DONE", severity: "medium", summary: "done", lastEventAt: 100, heartbeatAt: 100 };
   const rows = buildDashboardRows([status], [], { ...DEFAULT_CONFIG, showDismissedRows: false }, 100_000);
-  assert.equal(rows[0]?.displayState, "STALE");
+  assert.equal(rows.length, 0);
 
   const dismissedRows = buildDashboardRows([{ ...status, dismissedUntilEventAt: 100 }], [], { ...DEFAULT_CONFIG, showDismissedRows: false }, 100_000);
   assert.equal(dismissedRows.length, 0);

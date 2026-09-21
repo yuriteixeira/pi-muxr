@@ -113,7 +113,6 @@ interface RenderedBodyLine {
 
 function renderRowsForViewport(rows: DashboardRow[], selected: number, mode: DashboardLayoutMode, width: number, height: number, now: number, theme: DashboardTheme): RenderedBodyLine[] {
   if (rows.length === 0) return renderEmptyState(width, height, theme);
-  if (mode === "narrow" && width >= 46 && height >= 4) return renderNarrowCards(rows, selected, width, height, now, theme);
   return renderTableRows(rows, selected, mode, width, height, now, theme);
 }
 
@@ -129,20 +128,6 @@ function renderTableRows(rows: DashboardRow[], selected: number, mode: Dashboard
   return padBody(lines, height, width);
 }
 
-function renderNarrowCards(rows: DashboardRow[], selected: number, width: number, height: number, now: number, theme: DashboardTheme): RenderedBodyLine[] {
-  const reserveHint = rows.length * 4 > height && height > 5 ? 1 : 0;
-  const cardCapacity = Math.max(1, Math.floor((height - reserveHint) / 4));
-  const range = getVisibleRowRange(rows.length, selected, cardCapacity);
-  const lines: RenderedBodyLine[] = rows.slice(range.start, range.end).flatMap((row, offset) => {
-    const index = range.start + offset;
-    const isSelected = index === selected;
-    const style = isSelected ? theme.selectedSurface : undefined;
-    return renderCard(row, isSelected, width, now, theme).map((text) => ({ text, style, selected: isSelected }));
-  });
-  if (reserveHint) lines.push({ text: renderScrollHint(range, width, theme) });
-  return padBody(lines, height, width);
-}
-
 function renderEmptyState(width: number, height: number, theme: DashboardTheme): RenderedBodyLine[] {
   const empty = theme.muted("No pi sessions found. Start pi in a tmux pane to populate this dashboard.");
   return padBody([{ text: centerLine(empty, width) }], height, width);
@@ -153,62 +138,40 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
   const visual = getStateVisual(row.displayState, theme);
   const indicator = selected ? theme.accent("┃") : " ";
   const unread = row.unread ? theme.warning("●") : theme.muted("·");
-  const state = visual.style(`${visual.icon} ${visual.label.padEnd(6)}`);
-  const age = theme.muted(fitPlainCell(text.age, 5));
-  const panePrefix = mode === "wide" ? " " : "";
+  const state = visual.style(`${visual.icon} ${visual.label}`);
   const summaryStyle = row.unread && row.actionable ? theme.bright : theme.text;
-
-  if (mode === "wide") {
-    const panePathGap = "  ";
-    const availableSummaryWidth = Math.max(10, width - 79);
-    const summaryWidth = Math.min(availableSummaryWidth, Math.floor(width * 0.3));
-    const summaryOffset = " ".repeat(Math.max(0, availableSummaryWidth - summaryWidth));
-    return [
-      fitCell(`${indicator} ${unread}`, 4),
-      fitCell(state, 12),
-      fitCell(age, 6),
-      `${theme.info(fitPlainCell(`${panePrefix}${text.pane}`, 26))}${panePathGap}`,
-      theme.muted(fitPlainCellEnd(text.project, 24)),
-      `${summaryOffset}${summaryStyle(padPlainCellStart(text.summary, summaryWidth))}`,
-    ].join(" ");
-  }
-
-  const summaryWidth = Math.max(10, width - 2 - 12 - 6 - 20 - 3);
-  return [
-    fitCell(`${indicator} ${unread}`, 4),
-    fitCell(state, 12),
-    fitCell(age, 6),
-    theme.info(fitPlainCell(text.pane, 20)),
-    summaryStyle(padPlainCellStart(text.summary, summaryWidth)),
-  ].join(" ");
-}
-
-function renderCard(row: DashboardRow, selected: boolean, width: number, now: number, theme: DashboardTheme): string[] {
-  const text = toRowText(row, now);
-  const visual = getStateVisual(row.displayState, theme);
-  const unread = row.unread ? theme.warning("●") : theme.muted("·");
-  const state = visual.style(`${unread} ${visual.icon} ${visual.label}`);
-  const border = selected ? theme.accent : theme.border;
-  const headerLeft = `${border("╭─")} ${state} ${theme.muted(text.age)} ${border("─")} ${theme.info(text.pane)} `;
-  const headerRight = border("╮");
-  const fillWidth = Math.max(0, width - visibleWidth(headerLeft) - visibleWidth(headerRight));
-  const header = `${headerLeft}${border("─".repeat(fillWidth))}${headerRight}`;
-  const project = `${border("│")} ${theme.muted(padPlainCellEnd(text.project, Math.max(0, width - 4)))} ${border("│")}`;
-  const summaryStyle = row.unread && row.actionable ? theme.bright : theme.text;
-  const summary = `${border("│")} ${summaryStyle(padPlainCell(text.summary, Math.max(0, width - 4)))} ${border("│")}`;
-  const bottom = `${border("╰")}${border("─".repeat(Math.max(0, width - 2)))}${border("╯")}`;
-  return [fitCell(header, width), fitCell(project, width), fitCell(summary, width), fitCell(bottom, width)];
+  const innerWidth = Math.max(0, width);
+  const columns = mode === "wide"
+    ? { session: 22, project: 24, state: 11, age: 6, pane: 22 }
+    : mode === "medium"
+      ? { session: 18, project: 22, state: 11, age: 6, pane: 0 }
+      : innerWidth >= 46
+        ? { session: 14, project: 18, state: 11, age: 0, pane: 0 }
+        : { session: 12, project: 14, state: 0, age: 0, pane: 0 };
+  const fixedWidth = 4 + columns.session + columns.project + columns.state + columns.age + columns.pane;
+  const separatorWidth = [4, columns.session, columns.project, columns.state, columns.age, columns.pane].filter((value) => value > 0).length - 1;
+  const summaryWidth = Math.max(0, innerWidth - fixedWidth - separatorWidth);
+  const cells = [
+    padCell(`${indicator} ${unread}`, 4),
+    padCell(theme.info(text.session), columns.session),
+    padCell(theme.muted(fitPlainCellEnd(text.project, columns.project)), columns.project),
+  ];
+  if (columns.state > 0) cells.push(padCell(state, columns.state));
+  if (columns.age > 0) cells.push(padCell(theme.muted(text.age), columns.age));
+  if (columns.pane > 0) cells.push(padCell(theme.info(text.pane), columns.pane));
+  if (summaryWidth > 0) cells.push(summaryStyle(fitPlainCell(text.summary, summaryWidth)));
+  return cells.join(" ");
 }
 
 function renderHeader(width: number, theme: DashboardTheme): string {
-  return renderSectionTop(`${theme.accent("")} pi-dash`, width, theme, theme.bright);
+  return renderSectionTop("pi-dash", width, theme, theme.bright);
 }
 
 function renderStats(rows: DashboardRow[], mode: DashboardLayoutMode, theme: DashboardTheme): string {
   const actionable = rows.filter((row) => row.actionable).length;
   const unread = rows.filter((row) => row.actionable && row.unread && !row.dismissed).length;
   const stale = rows.filter((row) => row.displayState === "STALE").length;
-  const layout = mode === "wide" ? "wide table" : mode === "medium" ? "compact table" : "cards";
+  const layout = mode === "wide" ? "wide table" : mode === "medium" ? "compact table" : "small table";
   return ` ${theme.warning("●")} ${unread} unread  ${theme.accent("◆")} ${actionable} actionable  ${theme.stale("󰅖")} ${stale} stale  ${theme.muted(layout)}`;
 }
 
@@ -252,6 +215,11 @@ function frameLine(content: string, width: number, theme: DashboardTheme, style?
   return `${borderStyle("│")}${style ? style(line) : line}${borderStyle("│")}`;
 }
 
+function padCell(text: string, width: number): string {
+  const fitted = fitCell(text, width);
+  return `${fitted}${" ".repeat(Math.max(0, width - visibleWidth(fitted)))}`;
+}
+
 function fitPlainCell(text: string, width: number, ellipsis = "…"): string {
   if (width <= 0) return "";
   if (visibleWidth(text) <= width) return text;
@@ -276,21 +244,6 @@ function fitPlainCellEnd(text: string, width: number, ellipsis = "…"): string 
     result = char + result;
   }
   return `${ellipsis}${result}`;
-}
-
-function padPlainCell(text: string, width: number, ellipsis = "…"): string {
-  const fitted = fitPlainCell(text, width, ellipsis);
-  return `${fitted}${" ".repeat(Math.max(0, width - visibleWidth(fitted)))}`;
-}
-
-function padPlainCellStart(text: string, width: number, ellipsis = "…"): string {
-  const fitted = fitPlainCell(text, width, ellipsis);
-  return `${" ".repeat(Math.max(0, width - visibleWidth(fitted)))}${fitted}`;
-}
-
-function padPlainCellEnd(text: string, width: number, ellipsis = "…"): string {
-  const fitted = fitPlainCellEnd(text, width, ellipsis);
-  return `${fitted}${" ".repeat(Math.max(0, width - visibleWidth(fitted)))}`;
 }
 
 function padBody(lines: RenderedBodyLine[], height: number, width: number): RenderedBodyLine[] {
