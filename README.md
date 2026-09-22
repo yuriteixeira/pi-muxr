@@ -13,15 +13,16 @@ If you use [Pi](https://pi.dev) and if you sorta like `herdr`, but you're a die-
 ## Features
 
 - Tracks multiple Pi sessions across tmux.
-- Shows `ASK`, `ERROR`, `DONE`, `RUN`, `IDLE`, and `STALE` states.
+- Shows `ASK`, `ERROR`, `DONE`, `RUN`, and `IDLE` states for active sessions.
 - Sorts actionable sessions first.
 - Focuses the owning tmux pane from the keyboard.
 - Supports read and dismiss actions.
-- Detects stale sessions with heartbeats and pane checks.
+- Detects and hides stale sessions with heartbeats and pane checks.
 - Provides terminal and browser interfaces.
 - Provides a toggleable pinned sidebar across all tmux sessions and windows.
 - Sends terminal bell, desktop, and browser notifications.
-- Supports configurable actionable states and notification behavior.
+- Supports configurable dashboard and browser actionable states.
+- Supports configurable desktop notification and dashboard bell behavior.
 
 ## Installation
 
@@ -107,8 +108,8 @@ cp examples/config.json ~/.pi-muxr/config.json
 You can then edit the copied file. The settings control:
 
 - The state directory and SQLite database path.
-- Which session states need action.
-- Desktop notifications and the dashboard bell.
+- Which session states need action in the dashboard and browser interface.
+- Desktop notifications for `ASK`, `ERROR`, and `DONE`, and the dashboard bell.
 - Whether the dashboard shows dismissed rows.
 - Stale session, heartbeat, and dashboard presence timing.
 

@@ -86,11 +86,11 @@ The domain supports these states:
 | `QUEUED` | Work is waiting to start. |
 | `RUN` | Pi is processing a turn or tool. |
 | `IDLE` | The session is alive but not active. |
-| `STALE` | The heartbeat expired or the tmux pane no longer exists. |
+| `STALE` | Internal display classification for an expired heartbeat or a missing tmux pane. |
 
-By default, `ASK`, `ERROR`, and `DONE` are actionable. The configuration can change the actionable states.
+By default, `ASK`, `ERROR`, and `DONE` are actionable. The configuration can change the actionable states used by the dashboard, dashboard bell, dismissal actions, and browser notifications. Desktop notifications always use the default actionable states.
 
-An event is unread when it is actionable and its `last_event_at` is newer than `read_until_event_at`. An event is dismissed when `dismissed_until_event_at` is at least as recent as `last_event_at`. This means a new event becomes visible again after an older event was read or dismissed.
+An event is unread when its `last_event_at` is newer than `read_until_event_at` and it has not been dismissed. Unread and actionable are separate properties. The dashboard can therefore show an unread marker for a state that is not actionable. An event is dismissed when `dismissed_until_event_at` is at least as recent as `last_event_at`. This means a new event becomes visible again after an older event was read or dismissed.
 
 ## Pi extension flow
 
@@ -136,9 +136,9 @@ When dashboard rows are built:
 
 - A session is stale when its heartbeat is older than `staleAfterMs`.
 - A session is also stale when its recorded pane is missing.
-- Stale rows are displayed as `STALE` and are not actionable.
+- Stale rows are classified as `STALE`, marked as not actionable, and removed from the displayed rows.
 
-This check is performed when rows are read. The database does not need a cleanup process for abandoned rows.
+This check is performed when rows are read. The database does not need a cleanup process for abandoned rows, but abandoned rows remain stored and are hidden from the interfaces.
 
 ## CLI dashboard flow
 
@@ -158,8 +158,8 @@ load configuration
     -> read session rows
     -> list tmux panes
     -> join sessions with panes
-    -> mark stale rows
-    -> sort rows
+    -> mark and remove stale rows
+    -> sort active rows
     -> render dashboard
 ```
 
@@ -219,22 +219,22 @@ The web interface is a terminal view, not a second dashboard implementation. It 
 
 ## Notifications
 
-Notifications use the same actionable state model as the dashboard.
+The dashboard bell and browser notifications use the configured actionable states. Desktop notifications use the fixed default states: `ASK`, `ERROR`, and `DONE`.
 
 Desktop notification flow:
 
 ```text
 extension state update
-    -> check actionable state
+    -> check default desktop notification state
     -> check previous notification marker
     -> check dashboard presence
     -> send desktop notification
     -> store last_notified_event_at
 ```
 
-The extension avoids repeated notifications for the same state. When configured, a fresh dashboard presence suppresses desktop notifications because the user can already see the event.
+The extension avoids repeated desktop notifications for the same state. When configured, a fresh dashboard presence suppresses desktop notifications because the user can already see the event.
 
-The interactive CLI uses a separate in process event set for its terminal bell. The browser gateway polls notification state and sends browser messages for new unread actionable rows.
+The interactive CLI uses a separate in process event set for its terminal bell. The browser gateway polls notification state and sends browser messages for new unread actionable rows. Both paths use the configured actionable states.
 
 ## Configuration boundary
 
@@ -243,14 +243,14 @@ Configuration is loaded from `~/.pi-muxr/config.json`. If the file does not exis
 Configuration controls:
 
 - Database and state paths.
-- Actionable states.
-- Desktop notification behavior.
+- Actionable states for the dashboard, dashboard bell, dismissal actions, and browser notifications.
+- Desktop notification behavior for the fixed `ASK`, `ERROR`, and `DONE` states.
 - Dashboard bell behavior.
 - Whether dismissed rows are shown.
 - Stale and heartbeat timing.
 - Dashboard presence timing.
 
-The CLI, extension, and web gateway all load the same configuration so they use the same state and timing rules.
+The CLI, extension, and web gateway all load the same configuration. They share state and timing rules, while desktop notifications retain their fixed default state list.
 
 ## Design decisions
 
