@@ -18,6 +18,7 @@ adapt to your workflow and not the other way around, you came to the right place
 - Supports read and dismiss actions.
 - Detects stale sessions with heartbeats and pane checks.
 - Provides terminal and browser interfaces.
+- Provides a toggleable pinned sidebar across all tmux sessions and windows.
 - Sends terminal bell, desktop, and browser notifications.
 - Supports configurable actionable states and notification behavior.
 
@@ -46,28 +47,50 @@ npm install --global @yuriteixeira/pi-muxr
 ## Usage
 
 ```bash
-# To open the dashbord in the current pane
+# Open the dashboard in the current pane
 pi-muxr
 
-# To toggle displaying the dashboard in a sidebar
+# Toggle the pinned dashboard sidebar
 pi-muxr --sidebar
 pi-muxr --sidebar right
 pi-muxr --sidebar left
 
-# When display it via Tmux's display-popup
+# Exit after selecting a session, useful in a tmux popup
 pi-muxr --quit-on-select
 
-# Output pi session to STDOUT
+# Output Pi sessions to standard output
 pi-muxr --list
 
-# Start a webapp containing a terminal emulator, 
-# so you can continue your work from your phone or whatever
+# Start the web app with a terminal emulator
+# so you can continue your work from another device
 pi-muxr --web
 ```
 
-Run `pi-muxr --sidebar` inside tmux to open and pin a full height dashboard pane on the right side of every window in every tmux session. Pass `left` or `right` to select the side. Each pane uses at most 25 percent of the window width. New tmux sessions and windows receive the same sidebar while it is pinned. Run the command again to close all dashboard sidebar panes and remove the pin.
+Run `pi-muxr --sidebar` inside tmux to open and pin a full height dashboard pane on the right side of every window in every tmux session. Pass `left` or `right` to select the side. Each pane uses at most 25 percent of the window width. New tmux sessions and windows receive the same sidebar while it is pinned. The pinned sidebar is toggleable. Run the same command again to close all dashboard sidebar panes and remove the pin.
 
 Use `--quit-on-select` to close the interactive dashboard after Enter focuses the selected row. The browser interface runs at `http://127.0.0.1:3042` by default.
+
+### Tmux shortcuts
+
+Add bindings like these to `~/.tmux.conf`:
+
+```tmux
+# Press the tmux prefix, then m, to open pi-muxr in a popup.
+bind-key m display-popup -E -w 90% -h 90% "pi-muxr --quit-on-select"
+
+# Press the tmux prefix, then s, to toggle the pinned right sidebar.
+bind-key s run-shell "pi-muxr --sidebar right"
+```
+
+The default tmux prefix is `Ctrl+b`. With these bindings, press `Ctrl+b`, then `m` for the popup, or press `Ctrl+b`, then `s` for the sidebar. Change `right` to `left` if you want the sidebar on the left.
+
+Reload the tmux configuration after you save it:
+
+```bash
+tmux source-file ~/.tmux.conf
+```
+
+The popup closes after you select a session because it uses `--quit-on-select`. The sidebar stays pinned across existing and new tmux sessions and windows. Use the same sidebar shortcut again to close it and remove the pin.
 
 ## Development Documentation
 
