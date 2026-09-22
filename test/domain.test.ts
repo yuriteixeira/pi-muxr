@@ -10,7 +10,7 @@ import { openDatabase } from "../src/state/database.ts";
 import { readStatuses } from "../src/state/read-statuses.ts";
 import { dismissAllRead, dismissStatus, markRead, upsertStatus } from "../src/state/write-status.ts";
 import { parseTmuxPanes } from "../src/tmux/list-panes.ts";
-import { buildPiDashCommand, buildSidebarSplitArgs, parseSidebarPaneInventory, parseSidebarSide } from "../src/tmux/sidebar.ts";
+import { buildPiDashCommand, buildSidebarHookCommand, buildSidebarSplitArgs, parseSidebarPaneInventory, parseSidebarSide, parseSidebarWindowTarget } from "../src/tmux/sidebar.ts";
 import { renderDashboardLines } from "../src/cli/dashboard-component.ts";
 import { getStateIcon } from "../src/cli/dashboard-icons.ts";
 import { renderRows } from "../src/cli/format.ts";
@@ -43,6 +43,13 @@ test("sidebar option defaults to right and accepts an explicit side", () => {
   assert.throws(() => parseSidebarSide(["--sidebar", "top"]), /accepts only/);
 });
 
+test("sidebar window target accepts tmux window IDs", () => {
+  assert.equal(parseSidebarWindowTarget([]), null);
+  assert.equal(parseSidebarWindowTarget(["--sidebar-window", "@12"]), "@12");
+  assert.throws(() => parseSidebarWindowTarget(["--sidebar-window"]), /requires a tmux window ID/);
+  assert.throws(() => parseSidebarWindowTarget(["--sidebar-window", "work:1"]), /requires a tmux window ID/);
+});
+
 test("sidebar pane parser finds marked panes and one target per window", () => {
   const output = "%1\t@1\t\n%2\t@1\tleft\n%3\t@2\tright\n%4\t@2\t\n%5\t@3\tother\n";
   assert.deepEqual(parseSidebarPaneInventory(output), {
@@ -58,6 +65,10 @@ test("sidebar split places a full height pane with at most 25 percent width", ()
   assert.deepEqual(right, ["split-window", "-d", "-f", "-h", "-l", "25%", "-t", "%1", "-P", "-F", "#{pane_id}", "pi-dash"]);
   assert.deepEqual(left, ["split-window", "-d", "-f", "-h", "-l", "25%", "-b", "-t", "%1", "-P", "-F", "#{pane_id}", "pi-dash"]);
   assert.equal(buildPiDashCommand("/opt/node bin/node", "/tmp/pi-dash's/index.js"), "'/opt/node bin/node' '/tmp/pi-dash'\\''s/index.js'");
+  assert.equal(
+    buildSidebarHookCommand("/opt/node bin/node", "/tmp/pi-dash/index.js"),
+    "run-shell ''\\''/opt/node bin/node'\\'' '\\''/tmp/pi-dash/index.js'\\'' --sidebar-window '\\''#{window_id}'\\'''",
+  );
 });
 
 test("sqlite status markers", () => {

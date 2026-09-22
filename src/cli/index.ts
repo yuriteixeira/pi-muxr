@@ -3,7 +3,7 @@ import { loadConfig } from "../config/config.js";
 import { openDatabase } from "../state/database.js";
 import { readStatuses } from "../state/read-statuses.js";
 import { listTmuxPanes } from "../tmux/list-panes.js";
-import { parseSidebarSide, toggleSidebar } from "../tmux/sidebar.js";
+import { ensurePinnedSidebar, parseSidebarSide, parseSidebarWindowTarget, toggleSidebar } from "../tmux/sidebar.js";
 import { renderRows } from "./format.js";
 import { buildDashboardRows } from "./rows.js";
 import { runWebServer } from "../web/server.js";
@@ -13,7 +13,7 @@ const HELP = `pi-dash
 
 Usage:
   pi-dash                   Open interactive dashboard
-  pi-dash --sidebar [SIDE]  Toggle panes in every tmux window (default: right)
+  pi-dash --sidebar [SIDE]  Toggle pinned panes in every tmux window (default: right)
   pi-dash --list            Print current rows and exit
   pi-dash --config          Print resolved config
   pi-dash --web             Serve browser terminal for a pi-dash tmux session
@@ -29,10 +29,16 @@ function main(argv: string[]): void {
   if (argv.includes("--help") || argv.includes("-h")) { console.log(HELP); return; }
 
   try {
+    const sidebarWindowTarget = parseSidebarWindowTarget(argv);
+    if (sidebarWindowTarget) {
+      ensurePinnedSidebar(sidebarWindowTarget);
+      return;
+    }
+
     const sidebarSide = parseSidebarSide(argv);
     if (sidebarSide) {
       const result = toggleSidebar(sidebarSide);
-      console.log(result === "created" ? `Opened pi-dash sidebars on the ${sidebarSide}.` : "Closed pi-dash sidebars.");
+      console.log(result === "created" ? `Opened and pinned pi-dash sidebars on the ${sidebarSide}.` : "Closed and unpinned pi-dash sidebars.");
       return;
     }
   } catch (error) {

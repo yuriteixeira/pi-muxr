@@ -9,6 +9,8 @@ export interface SidebarPaneInventory {
 }
 
 const SIDEBAR_OPTION = "@pi-dash-sidebar";
+const SIDEBAR_SIDE_OPTION = "@pi-dash-sidebar-side";
+const SIDEBAR_WINDOW_HOOK = "after-new-window[731]";
 const SIDEBAR_PANES_FORMAT = `#{pane_id}\t#{window_id}\t#{${SIDEBAR_OPTION}}`;
 
 export function parseSidebarSide(argv: string[]): SidebarSide | null {
@@ -45,33 +47,101 @@ export function buildSidebarSplitArgs(side: SidebarSide, targetPaneId: string, c
   return args;
 }
 
+export function parseSidebarWindowTarget(argv: string[]): string | null {
+  const optionIndex = argv.indexOf("--sidebar-window");
+  if (optionIndex === -1) return null;
+
+  const target = argv[optionIndex + 1];
+  if (!target || !/^@\d+$/.test(target)) throw new Error("--sidebar-window requires a tmux window ID.");
+  return target;
+}
+
 export function buildPiDashCommand(execPath: string, entrypoint: string): string {
   return `${quoteShellArgument(execPath)} ${quoteShellArgument(entrypoint)}`;
+}
+
+export function buildSidebarHookCommand(execPath: string, entrypoint: string): string {
+  const command = `${buildPiDashCommand(execPath, entrypoint)} --sidebar-window '#{window_id}'`;
+  return `run-shell ${quoteShellArgument(command)}`;
 }
 
 export function toggleSidebar(side: SidebarSide): SidebarToggleResult {
   if (!process.env.TMUX) throw new Error("--sidebar must be run inside tmux.");
 
   const inventory = readSidebarPaneInventory();
-  if (inventory.sidebarPaneIds.length > 0) {
+  if (readPinnedSidebarSide() || inventory.sidebarPaneIds.length > 0) {
+    unpinSidebar();
     destroySidebarPanes(inventory.sidebarPaneIds);
     return "destroyed";
   }
 
-  const entrypoint = process.argv[1];
-  if (!entrypoint) throw new Error("Cannot resolve the pi-dash entrypoint.");
+  const entrypoint = resolveEntrypoint();
   if (inventory.targetPaneIds.length === 0) throw new Error("No tmux windows are available.");
 
-  createSidebarPanes(side, inventory.targetPaneIds, buildPiDashCommand(process.execPath, entrypoint));
+  const command = buildPiDashCommand(process.execPath, entrypoint);
+  createSidebarPanes(side, inventory.targetPaneIds, command);
+  try {
+    pinSidebar(side, buildSidebarHookCommand(process.execPath, entrypoint));
+  } catch (error) {
+    destroySidebarPanes(readSidebarPaneInventory().sidebarPaneIds);
+    throw error;
+  }
   return "created";
 }
 
-function readSidebarPaneInventory(): SidebarPaneInventory {
-  const output = execFileSync("tmux", ["list-panes", "-a", "-F", SIDEBAR_PANES_FORMAT], {
+export function ensurePinnedSidebar(targetWindowId: string): boolean {
+  const side = readPinnedSidebarSide();
+  if (!side) return false;
+
+  const inventory = readSidebarPaneInventory(targetWindowId);
+  if (inventory.sidebarPaneIds.length > 0) return false;
+  const targetPaneId = inventory.targetPaneIds[0];
+  if (!targetPaneId) throw new Error(`No pane is available in tmux window ${targetWindowId}.`);
+
+  createSidebarPanes(side, [targetPaneId], buildPiDashCommand(process.execPath, resolveEntrypoint()));
+  return true;
+}
+
+function resolveEntrypoint(): string {
+  const entrypoint = process.argv[1];
+  if (!entrypoint) throw new Error("Cannot resolve the pi-dash entrypoint.");
+  return entrypoint;
+}
+
+function readSidebarPaneInventory(targetWindowId?: string): SidebarPaneInventory {
+  const targetArgs = targetWindowId ? ["-t", targetWindowId] : ["-a"];
+  const output = execFileSync("tmux", ["list-panes", ...targetArgs, "-F", SIDEBAR_PANES_FORMAT], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "ignore"],
   });
   return parseSidebarPaneInventory(output);
+}
+
+function readPinnedSidebarSide(): SidebarSide | null {
+  try {
+    const side = execFileSync("tmux", ["show-option", "-gv", SIDEBAR_SIDE_OPTION], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    return side === "left" || side === "right" ? side : null;
+  } catch {
+    return null;
+  }
+}
+
+function pinSidebar(side: SidebarSide, hookCommand: string): void {
+  execFileSync("tmux", ["set-option", "-g", SIDEBAR_SIDE_OPTION, side], { stdio: "ignore" });
+  try {
+    execFileSync("tmux", ["set-hook", "-g", SIDEBAR_WINDOW_HOOK, hookCommand], { stdio: "ignore" });
+  } catch (error) {
+    execFileSync("tmux", ["set-option", "-gu", SIDEBAR_SIDE_OPTION], { stdio: "ignore" });
+    throw error;
+  }
+}
+
+function unpinSidebar(): void {
+  execFileSync("tmux", ["set-hook", "-gu", SIDEBAR_WINDOW_HOOK], { stdio: "ignore" });
+  execFileSync("tmux", ["set-option", "-gu", SIDEBAR_SIDE_OPTION], { stdio: "ignore" });
 }
 
 function createSidebarPanes(side: SidebarSide, targetPaneIds: string[], command: string): void {

@@ -28,7 +28,7 @@ pi-dash --list
 pi-dash --web
 ```
 
-Run `pi-dash --sidebar` inside tmux to open a full height dashboard pane on the right side of every window in every tmux session. Pass `left` or `right` to select the side. Each pane uses at most 25 percent of the window width. Run the command again to close all dashboard sidebar panes.
+Run `pi-dash --sidebar` inside tmux to open and pin a full height dashboard pane on the right side of every window in every tmux session. Pass `left` or `right` to select the side. Each pane uses at most 25 percent of the window width. New tmux windows receive the same sidebar while it is pinned. Run the command again to close all dashboard sidebar panes and remove the pin.
 
 Use `--quit-on-select` to close the interactive dashboard after Enter focuses the selected row. The browser interface runs at `http://127.0.0.1:3042` by default.
 
