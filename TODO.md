@@ -1,0 +1,1 @@
+- [ ] daemon that will received notification's click and activate the right tmux pane
