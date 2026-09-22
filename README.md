@@ -1,8 +1,13 @@
-# Welcome to `pi-muxr`
+# Welcome to `pi-muxr`!
+
+If you use [Pi](https://pi.dev) and if you sorta like `herdr`, but if you're a die-hard tmux user that want your tooling to 
+adapt to your workflow and not the other way around, you came to the right place.
 
 `pi-muxr` is a dashboard for Pi coding sessions that run in tmux.
 
-A Pi extension publishes session state and the dashboard shows which sessions need attention and focuses their respective tmux panes.
+![Sidebar](./docs/resources/sidebar.png)
+
+![Fullscreen](./docs/resources/fullscreen.png)
 
 ## Features
 
@@ -20,9 +25,9 @@ A Pi extension publishes session state and the dashboard shows which sessions ne
 
 Requirements:
 
-- Node.js 24 or later
-- tmux
-- Pi
+- [Node.js 24 or later](https://nodejs.org/en/download)
+- [Tmux](https://github.com/tmux/tmux?tab=readme-ov-file)
+- [Pi](https://pi.dev)
 
 Install the extension and its command with Pi:
 
@@ -41,12 +46,22 @@ npm install --global @yuriteixeira/pi-muxr
 ## Usage
 
 ```bash
+# To open the dashbord in the current pane
 pi-muxr
+
+# To toggle displaying the dashboard in a sidebar
 pi-muxr --sidebar
 pi-muxr --sidebar right
 pi-muxr --sidebar left
+
+# When display it via Tmux's display-popup
 pi-muxr --quit-on-select
+
+# Output pi session to STDOUT
 pi-muxr --list
+
+# Start a webapp containing a terminal emulator, 
+# so you can continue your work from your phone or whatever
 pi-muxr --web
 ```
 
