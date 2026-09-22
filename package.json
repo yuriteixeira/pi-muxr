@@ -1,34 +1,70 @@
 {
-  "name": "pi-dash",
+  "name": "@yuriteixeira/pi-muxr",
   "version": "0.1.0",
-  "description": "tmux-native dashboard for pi coding-agent sessions",
+  "description": "tmux dashboard for Pi coding sessions",
   "type": "module",
   "packageManager": "pnpm@11.0.0-dev.1005",
+  "license": "MIT",
+  "author": "Yuri Teixeira <oyuriteixeira@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yuriteixeira/pi-muxr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yuriteixeira/pi-muxr/issues"
+  },
+  "homepage": "https://github.com/yuriteixeira/pi-muxr#readme",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "tmux",
+    "dashboard",
+    "coding-agent"
+  ],
   "bin": {
-    "pi-dash": "./dist/cli/index.js"
+    "pi-muxr": "./dist/cli/index.js"
   },
   "exports": {
-    ".": "./dist/index.js",
-    "./extension": "./dist/extension/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./extension": {
+      "types": "./dist/extension/index.d.ts",
+      "import": "./dist/extension/index.js"
+    }
   },
   "files": [
     "dist",
+    "docs",
+    "examples",
+    "LICENSE",
     "README.md"
   ],
+  "pi": {
+    "extensions": [
+      "./dist/extension/index.js"
+    ]
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "rm -rf dist && tsc -p tsconfig.json",
     "start": "tsc -p tsconfig.json --watch --preserveWatchOutput",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --test --experimental-sqlite --import tsx test/*.test.ts"
+    "test": "node --test --experimental-sqlite --import tsx test/*.test.ts",
+    "prepack": "pnpm build",
+    "prepublishOnly": "pnpm typecheck && pnpm test"
   },
   "dependencies": {
-    "@earendil-works/pi-tui": "^0.87.0",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
     "node-pty": "^1.1.0",
     "ws": "^8.21.3"
   },
+  "peerDependencies": {
+    "@earendil-works/pi-tui": "*"
+  },
   "devDependencies": {
+    "@earendil-works/pi-tui": "^0.87.0",
     "@types/node": "latest",
     "@types/ws": "^8.18.1",
     "tsx": "latest",
@@ -36,6 +72,9 @@
   },
   "engines": {
     "node": ">=24.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

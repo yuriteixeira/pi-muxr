@@ -161,7 +161,7 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
 }
 
 function renderHeader(width: number, theme: DashboardTheme): string {
-  return renderSectionTop("pi-dash", width, theme, theme.bright);
+  return renderSectionTop("pi-muxr", width, theme, theme.bright);
 }
 
 function statusSectionFits(rows: DashboardRow[], mode: DashboardLayoutMode, width: number, theme: DashboardTheme): boolean {

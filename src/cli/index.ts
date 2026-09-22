@@ -9,16 +9,16 @@ import { buildDashboardRows } from "./rows.js";
 import { runWebServer } from "../web/server.js";
 import { runDashboard } from "./dashboard.js";
 
-const HELP = `pi-dash
+const HELP = `pi-muxr
 
 Usage:
-  pi-dash                   Open interactive dashboard
-  pi-dash --sidebar [SIDE]  Toggle pinned panes in every tmux window (default: right)
-  pi-dash --list            Print current rows and exit
-  pi-dash --config          Print resolved config
-  pi-dash --web             Serve browser terminal for a pi-dash tmux session
-  pi-dash --quit-on-select  Exit after Enter focuses the selected row
-  pi-dash --help            Show this help
+  pi-muxr                   Open interactive dashboard
+  pi-muxr --sidebar [SIDE]  Toggle pinned panes in every tmux window (default: right)
+  pi-muxr --list            Print current rows and exit
+  pi-muxr --config          Print resolved config
+  pi-muxr --web             Serve browser terminal for a pi-muxr tmux session
+  pi-muxr --quit-on-select  Exit after Enter focuses the selected row
+  pi-muxr --help            Show this help
 
 Keys: ↑/↓ or j/k select, Enter focus/read, d dismiss, D dismiss all read, r refresh, q quit.
 
@@ -38,7 +38,7 @@ function main(argv: string[]): void {
     const sidebarSide = parseSidebarSide(argv);
     if (sidebarSide) {
       const result = toggleSidebar(sidebarSide);
-      console.log(result === "created" ? `Opened and pinned pi-dash sidebars on the ${sidebarSide}.` : "Closed and unpinned pi-dash sidebars.");
+      console.log(result === "created" ? `Opened and pinned pi-muxr sidebars on the ${sidebarSide}.` : "Closed and unpinned pi-muxr sidebars.");
       return;
     }
   } catch (error) {

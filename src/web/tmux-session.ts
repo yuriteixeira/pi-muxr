@@ -9,10 +9,10 @@ export function isValidSessionName(name: string): boolean {
   return SESSION_NAME_PATTERN.test(name);
 }
 
-export async function ensurePiDashSession(session: string): Promise<void> {
+export async function ensurePiMuxrSession(session: string): Promise<void> {
   if (!isValidSessionName(session)) throw new Error("Invalid tmux session name.");
   if (await hasSession(session)) return;
-  await execFileAsync("tmux", ["new-session", "-d", "-s", session, piDashCommand()]);
+  await execFileAsync("tmux", ["new-session", "-d", "-s", session, piMuxrCommand()]);
 }
 
 export async function hideTmuxStatus(session: string): Promise<void> {
@@ -48,7 +48,7 @@ async function hasSession(session: string): Promise<boolean> {
   }
 }
 
-function piDashCommand(): string {
-  const entrypoint = JSON.stringify(process.argv[1] ?? "pi-dash");
+function piMuxrCommand(): string {
+  const entrypoint = JSON.stringify(process.argv[1] ?? "pi-muxr");
   return `${JSON.stringify(process.execPath)} ${entrypoint}`;
 }

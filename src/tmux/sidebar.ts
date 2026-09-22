@@ -8,8 +8,8 @@ export interface SidebarPaneInventory {
   targetPaneIds: string[];
 }
 
-const SIDEBAR_OPTION = "@pi-dash-sidebar";
-const SIDEBAR_SIDE_OPTION = "@pi-dash-sidebar-side";
+const SIDEBAR_OPTION = "@pi-muxr-sidebar";
+const SIDEBAR_SIDE_OPTION = "@pi-muxr-sidebar-side";
 const SIDEBAR_WINDOW_HOOK = "after-new-window[731]";
 const SIDEBAR_PANES_FORMAT = `#{pane_id}\t#{window_id}\t#{${SIDEBAR_OPTION}}`;
 
@@ -56,12 +56,12 @@ export function parseSidebarWindowTarget(argv: string[]): string | null {
   return target;
 }
 
-export function buildPiDashCommand(execPath: string, entrypoint: string): string {
+export function buildPiMuxrCommand(execPath: string, entrypoint: string): string {
   return `${quoteShellArgument(execPath)} ${quoteShellArgument(entrypoint)}`;
 }
 
 export function buildSidebarHookCommand(execPath: string, entrypoint: string): string {
-  const command = `${buildPiDashCommand(execPath, entrypoint)} --sidebar-window '#{window_id}'`;
+  const command = `${buildPiMuxrCommand(execPath, entrypoint)} --sidebar-window '#{window_id}'`;
   return `run-shell ${quoteShellArgument(command)}`;
 }
 
@@ -78,7 +78,7 @@ export function toggleSidebar(side: SidebarSide): SidebarToggleResult {
   const entrypoint = resolveEntrypoint();
   if (inventory.targetPaneIds.length === 0) throw new Error("No tmux windows are available.");
 
-  const command = buildPiDashCommand(process.execPath, entrypoint);
+  const command = buildPiMuxrCommand(process.execPath, entrypoint);
   createSidebarPanes(side, inventory.targetPaneIds, command);
   try {
     pinSidebar(side, buildSidebarHookCommand(process.execPath, entrypoint));
@@ -98,13 +98,13 @@ export function ensurePinnedSidebar(targetWindowId: string): boolean {
   const targetPaneId = inventory.targetPaneIds[0];
   if (!targetPaneId) throw new Error(`No pane is available in tmux window ${targetWindowId}.`);
 
-  createSidebarPanes(side, [targetPaneId], buildPiDashCommand(process.execPath, resolveEntrypoint()));
+  createSidebarPanes(side, [targetPaneId], buildPiMuxrCommand(process.execPath, resolveEntrypoint()));
   return true;
 }
 
 function resolveEntrypoint(): string {
   const entrypoint = process.argv[1];
-  if (!entrypoint) throw new Error("Cannot resolve the pi-dash entrypoint.");
+  if (!entrypoint) throw new Error("Cannot resolve the pi-muxr entrypoint.");
   return entrypoint;
 }
 

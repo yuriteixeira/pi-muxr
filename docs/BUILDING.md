@@ -1,6 +1,6 @@
-# Building pi dash
+# Building `pi-muxr`
 
-This guide explains how to build and run a local copy of `pi-dash`.
+This guide explains how to build and run a local copy of `pi-muxr`.
 
 ## Requirements
 
@@ -50,8 +50,8 @@ Build the package, then link the complete extension directory:
 ```bash
 pnpm build
 mkdir -p ~/.pi/agent/extensions
-rm -f ~/.pi/agent/extensions/pi-dash.js ~/.pi/agent/extensions/pi-dash
-ln -sfn "$PWD/dist/extension" ~/.pi/agent/extensions/pi-dash
+rm -f ~/.pi/agent/extensions/pi-muxr.js ~/.pi/agent/extensions/pi-muxr
+ln -sfn "$PWD/dist/extension" ~/.pi/agent/extensions/pi-muxr
 ```
 
 The directory link is required because the built extension imports sibling modules from `dist`.
@@ -61,7 +61,7 @@ If Pi is already running, use `/reload` after creating or changing the link.
 The extension stores state in:
 
 ```text
-~/.pi-dash/pi-dash.sqlite
+~/.pi-muxr/pi-muxr.sqlite
 ```
 
 It removes its row during a clean shutdown. Wrappers around Pi are supported when they load the extension.
@@ -69,10 +69,10 @@ It removes its row during a clean shutdown. Wrappers around Pi are supported whe
 ## Run the CLI
 
 ```bash
-pi-dash --help
-pi-dash --list
-pi-dash
-pi-dash --web
+pi-muxr --help
+pi-muxr --list
+pi-muxr
+pi-muxr --web
 ```
 
 See the main [README](../README.md) for user configuration, key bindings, and usage details.

@@ -1,6 +1,6 @@
 {
-  "stateDir": "~/.pi-dash",
-  "databasePath": "~/.pi-dash/pi-dash.sqlite",
+  "stateDir": "~/.pi-muxr",
+  "databasePath": "~/.pi-muxr/pi-muxr.sqlite",
   "actionableStates": ["ASK", "ERROR", "DONE"],
   "desktopNotifications": true,
   "suppressDesktopNotificationsWhenDashboardOpen": true,

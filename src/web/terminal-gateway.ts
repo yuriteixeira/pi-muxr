@@ -7,7 +7,7 @@ import { loadConfig } from "../config/config.js";
 import { openDatabase } from "../state/database.js";
 import type { ClientMessage, ServerMessage } from "./protocol.js";
 import { createNotificationMonitor } from "./notifications.js";
-import { ensurePiDashSession, hideTmuxStatus, isValidSessionName, restoreTmuxStatus } from "./tmux-session.js";
+import { ensurePiMuxrSession, hideTmuxStatus, isValidSessionName, restoreTmuxStatus } from "./tmux-session.js";
 
 export function attachTerminalGateway(server: http.Server): void {
   const websocketServer = new WebSocketServer({ noServer: true });
@@ -30,7 +30,7 @@ export function attachTerminalGateway(server: http.Server): void {
 }
 
 async function attachTerminal(websocket: WebSocket, url: URL): Promise<void> {
-  const session = url.searchParams.get("session")?.trim() || "pi-dash-web";
+  const session = url.searchParams.get("session")?.trim() || "pi-muxr-web";
   if (!isValidSessionName(session)) {
     sendJson(websocket, { type: "error", message: "Invalid tmux session name." });
     websocket.close();
@@ -38,7 +38,7 @@ async function attachTerminal(websocket: WebSocket, url: URL): Promise<void> {
   }
 
   try {
-    await ensurePiDashSession(session);
+    await ensurePiMuxrSession(session);
     await hideTmuxStatus(session);
   } catch (error) {
     sendJson(websocket, { type: "error", message: formatError(error) });

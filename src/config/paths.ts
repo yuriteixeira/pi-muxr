@@ -8,11 +8,11 @@ export function expandHome(input: string): string {
 }
 
 export function defaultStateDir(): string {
-  return join(homedir(), ".pi-dash");
+  return join(homedir(), ".pi-muxr");
 }
 
 export function defaultDatabasePath(): string {
-  return join(defaultStateDir(), "pi-dash.sqlite");
+  return join(defaultStateDir(), "pi-muxr.sqlite");
 }
 
 export function defaultConfigPath(): string {

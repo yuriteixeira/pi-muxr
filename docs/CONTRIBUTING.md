@@ -1,4 +1,4 @@
-# Contributing to pi dash
+# Contributing to `pi-muxr`
 
 ## Development workflow
 

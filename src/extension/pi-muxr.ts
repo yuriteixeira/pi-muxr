@@ -1,5 +1,5 @@
 import { loadConfig } from "../config/config.js";
-import type { DashboardConfig, PiDashState, PiDashStatus, TmuxPane } from "../domain/status.js";
+import type { DashboardConfig, PiMuxrState, PiMuxrStatus, TmuxPane } from "../domain/status.js";
 import { DEFAULT_ACTIONABLE_STATES } from "../domain/status.js";
 import { notifyStatus } from "../notifications/desktop.js";
 import { openDatabase, type Database } from "../state/database.js";
@@ -19,11 +19,11 @@ interface RuntimeState {
 }
 
 interface NotificationSnapshot {
-  state: PiDashState;
+  state: PiMuxrState;
   lastNotifiedEventAt: number | null;
 }
 
-export default function piDashExtension(pi: any): void {
+export default function piMuxrExtension(pi: any): void {
   const runtime: RuntimeState = { config: loadConfig(), db: null, id: null, heartbeatTimer: null, lastError: null, model: null, handledToolCallIds: new Set(), hasToolPreviewInPrompt: false };
 
   pi.on("session_start", async (_event: unknown, ctx: any) => {
@@ -103,7 +103,7 @@ function handleToolResult(runtime: RuntimeState, event: any, ctx: any): void {
   runtime.lastError = event.isError === true ? `${formatToolName(event.toolName)} ${summarizeResult(event)}` : null;
 }
 
-export function resolveAgentEndStatus(event: unknown, fallbackError: string | null): Pick<PiDashStatus, "state" | "severity" | "summary"> {
+export function resolveAgentEndStatus(event: unknown, fallbackError: string | null): Pick<PiMuxrStatus, "state" | "severity" | "summary"> {
   const failure = summarizeAgentEndFailure(event);
   if (failure) return { state: "ERROR", severity: "high", summary: failure };
   if (!hasAgentEndMessages(event) && fallbackError) return { state: "ERROR", severity: "high", summary: fallbackError };
@@ -149,7 +149,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
 }
 
-function writeState(runtime: RuntimeState, ctx: any, state: PiDashState, severity: PiDashStatus["severity"], summary: string): void {
+function writeState(runtime: RuntimeState, ctx: any, state: PiMuxrState, severity: PiMuxrStatus["severity"], summary: string): void {
   if (!runtime.db || !runtime.id) return;
   const now = Date.now();
   const pane = currentPane();
@@ -159,7 +159,7 @@ function writeState(runtime: RuntimeState, ctx: any, state: PiDashState, severit
   maybeNotify(runtime, status, notificationSnapshot);
 }
 
-function baseStatus(runtime: RuntimeState, ctx: any, pane: TmuxPane | null, state: PiDashState, severity: PiDashStatus["severity"], summary: string, now: number, event: boolean): PiDashStatus {
+function baseStatus(runtime: RuntimeState, ctx: any, pane: TmuxPane | null, state: PiMuxrState, severity: PiMuxrStatus["severity"], summary: string, now: number, event: boolean): PiMuxrStatus {
   return {
     id: runtime.id ?? createSessionId(ctx),
     paneId: pane?.paneId ?? process.env.TMUX_PANE ?? null,
@@ -178,7 +178,7 @@ function baseStatus(runtime: RuntimeState, ctx: any, pane: TmuxPane | null, stat
   };
 }
 
-function maybeNotify(runtime: RuntimeState, status: PiDashStatus, snapshot: NotificationSnapshot | null): void {
+function maybeNotify(runtime: RuntimeState, status: PiMuxrStatus, snapshot: NotificationSnapshot | null): void {
   if (!runtime.db || !runtime.config.desktopNotifications) return;
   if (!DEFAULT_ACTIONABLE_STATES.includes(status.state)) return;
   if (snapshot?.state === status.state) return;
@@ -189,7 +189,7 @@ function maybeNotify(runtime: RuntimeState, status: PiDashStatus, snapshot: Noti
 }
 
 function readNotificationSnapshot(db: Database, id: string): NotificationSnapshot | null {
-  const row = db.prepare("SELECT state, last_notified_event_at FROM sessions WHERE id = ?").get(id) as { state?: PiDashState; last_notified_event_at?: number | null } | undefined;
+  const row = db.prepare("SELECT state, last_notified_event_at FROM sessions WHERE id = ?").get(id) as { state?: PiMuxrState; last_notified_event_at?: number | null } | undefined;
   if (!row?.state) return null;
   return { state: row.state, lastNotifiedEventAt: row.last_notified_event_at ?? null };
 }

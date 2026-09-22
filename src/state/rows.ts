@@ -1,13 +1,13 @@
-import type { PiDashStatus } from "../domain/status.js";
+import type { PiMuxrStatus } from "../domain/status.js";
 
 type DbSessionRow = {
   id: string; pane_id: string | null; tmux_session: string | null; tmux_window: string | null; tmux_window_index: string | null;
-  pid: number; cwd: string; pi_session_file: string | null; model: string | null; state: PiDashStatus["state"]; severity: PiDashStatus["severity"];
+  pid: number; cwd: string; pi_session_file: string | null; model: string | null; state: PiMuxrStatus["state"]; severity: PiMuxrStatus["severity"];
   summary: string; last_event_at: number; heartbeat_at: number; read_until_event_at: number | null; acknowledged_at: number | null;
   dismissed_until_event_at: number | null; last_notified_event_at: number | null;
 };
 
-export function toStatus(row: DbSessionRow): PiDashStatus {
+export function toStatus(row: DbSessionRow): PiMuxrStatus {
   return {
     id: row.id,
     paneId: row.pane_id,

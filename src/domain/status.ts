@@ -1,10 +1,10 @@
-export const PI_DASH_STATES = ["ASK", "ERROR", "DONE", "QUEUED", "RUN", "IDLE", "STALE"] as const;
-export type PiDashState = (typeof PI_DASH_STATES)[number];
+export const PI_MUXR_STATES = ["ASK", "ERROR", "DONE", "QUEUED", "RUN", "IDLE", "STALE"] as const;
+export type PiMuxrState = (typeof PI_MUXR_STATES)[number];
 
 export const SEVERITIES = ["low", "medium", "high"] as const;
-export type PiDashSeverity = (typeof SEVERITIES)[number];
+export type PiMuxrSeverity = (typeof SEVERITIES)[number];
 
-export interface PiDashStatus {
+export interface PiMuxrStatus {
   id: string;
   paneId: string | null;
   tmuxSession: string | null;
@@ -14,8 +14,8 @@ export interface PiDashStatus {
   cwd: string;
   piSessionFile: string | null;
   model: string | null;
-  state: PiDashState;
-  severity: PiDashSeverity;
+  state: PiMuxrState;
+  severity: PiMuxrSeverity;
   summary: string;
   lastEventAt: number;
   heartbeatAt: number;
@@ -28,7 +28,7 @@ export interface PiDashStatus {
 export interface DashboardConfig {
   stateDir: string;
   databasePath: string;
-  actionableStates: PiDashState[];
+  actionableStates: PiMuxrState[];
   desktopNotifications: boolean;
   suppressDesktopNotificationsWhenDashboardOpen: boolean;
   dashboardBell: boolean;
@@ -50,8 +50,8 @@ export interface TmuxPane {
   panePid: number;
 }
 
-export interface DashboardRow extends PiDashStatus {
-  displayState: PiDashState;
+export interface DashboardRow extends PiMuxrStatus {
+  displayState: PiMuxrState;
   pane: TmuxPane | null;
   actionable: boolean;
   unread: boolean;
@@ -59,17 +59,17 @@ export interface DashboardRow extends PiDashStatus {
   staleReason?: string;
 }
 
-export const DEFAULT_ACTIONABLE_STATES: PiDashState[] = ["ASK", "ERROR", "DONE"];
+export const DEFAULT_ACTIONABLE_STATES: PiMuxrState[] = ["ASK", "ERROR", "DONE"];
 
-export function isActionableStatus(status: Pick<PiDashStatus, "state" | "lastEventAt" | "dismissedUntilEventAt">, actionableStates = DEFAULT_ACTIONABLE_STATES): boolean {
+export function isActionableStatus(status: Pick<PiMuxrStatus, "state" | "lastEventAt" | "dismissedUntilEventAt">, actionableStates = DEFAULT_ACTIONABLE_STATES): boolean {
   return actionableStates.includes(status.state) && !isDismissedForCurrentEvent(status);
 }
 
-export function isUnreadStatus(status: Pick<PiDashStatus, "lastEventAt" | "readUntilEventAt" | "dismissedUntilEventAt">): boolean {
+export function isUnreadStatus(status: Pick<PiMuxrStatus, "lastEventAt" | "readUntilEventAt" | "dismissedUntilEventAt">): boolean {
   return !isDismissedForCurrentEvent(status) && (status.readUntilEventAt ?? 0) < status.lastEventAt;
 }
 
-export function isDismissedForCurrentEvent(status: Pick<PiDashStatus, "lastEventAt" | "dismissedUntilEventAt">): boolean {
+export function isDismissedForCurrentEvent(status: Pick<PiMuxrStatus, "lastEventAt" | "dismissedUntilEventAt">): boolean {
   return (status.dismissedUntilEventAt ?? 0) >= status.lastEventAt;
 }
 

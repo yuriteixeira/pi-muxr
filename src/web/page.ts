@@ -3,7 +3,7 @@ export const WEB_PAGE = `<!doctype html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>pi-dash web</title>
+  <title>pi-muxr web</title>
   <link rel="stylesheet" href="/vendor/xterm.css" />
   <style>
     :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f1218; color: #eef2ff; }
@@ -29,7 +29,7 @@ export const WEB_PAGE = `<!doctype html>
 </head>
 <body>
   <header>
-    <h1>pi-dash web</h1>
+    <h1>pi-muxr web</h1>
     <div class="status" id="session-label"></div>
   </header>
   <main>
@@ -49,7 +49,7 @@ export const WEB_PAGE = `<!doctype html>
     const toastsElement = document.getElementById('toasts');
     const notificationsButton = document.getElementById('notifications');
     const params = new URLSearchParams(location.search);
-    const session = params.get('session') || 'pi-dash-web';
+    const session = params.get('session') || 'pi-muxr-web';
     document.getElementById('session-label').textContent = 'tmux: ' + session;
 
     let terminal;

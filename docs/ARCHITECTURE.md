@@ -1,8 +1,8 @@
-# pi dash architecture
+# `pi-muxr` architecture
 
 ## Purpose
 
-`pi-dash` gives one view of Pi sessions that run in tmux. It answers three questions:
+`pi-muxr` gives one view of Pi sessions that run in tmux. It answers three questions:
 
 1. Which sessions are active?
 2. Which sessions need attention?
@@ -17,7 +17,7 @@ Pi session
     |
     | Pi extension events
     v
-SQLite database: ~/.pi-dash/pi-dash.sqlite
+SQLite database: ~/.pi-muxr/pi-muxr.sqlite
     |
     +--> CLI dashboard
     |       |
@@ -144,10 +144,10 @@ This check is performed when rows are read. The database does not need a cleanup
 
 The CLI has four modes:
 
-- Interactive dashboard: `pi-dash`
-- Tmux sidebar toggle: `pi-dash --sidebar [left|right]`
-- Plain output: `pi-dash --list`
-- Browser server: `pi-dash --web`
+- Interactive dashboard: `pi-muxr`
+- Tmux sidebar toggle: `pi-muxr --sidebar [left|right]`
+- Plain output: `pi-muxr --list`
+- Browser server: `pi-muxr --web`
 
 The interactive dashboard follows this flow:
 
@@ -181,9 +181,9 @@ The extension uses `tmux list-panes` to discover pane metadata. The dashboard jo
 
 When the user focuses a row, `src/tmux/focus.ts` selects the pane and switches to its tmux session and window. When the CLI runs outside tmux, it reports the commands needed to focus the pane instead of pretending that the focus succeeded.
 
-The sidebar command splits every window in every tmux session and starts the same pi dash entrypoint in each new pane. The default side is right, and each pane uses at most 25 percent of the window width. A tmux pane option marks each pane. A global tmux option stores the selected side, and an indexed `after-new-window` hook adds the sidebar to new windows without replacing other hooks. The next sidebar command finds the markers, closes all dashboard sidebar panes, and removes the option and hook.
+The sidebar command splits every window in every tmux session and starts the same `pi-muxr` entrypoint in each new pane. The default side is right, and each pane uses at most 25 percent of the window width. A tmux pane option marks each pane. A global tmux option stores the selected side, and an indexed `after-new-window` hook adds the sidebar to new windows without replacing other hooks. The next sidebar command finds the markers, closes all dashboard sidebar panes, and removes the option and hook.
 
-The browser gateway uses a separate tmux session, named `pi-dash-web` by default. A query parameter can select another valid session name.
+The browser gateway uses a separate tmux session, named `pi-muxr-web` by default. A query parameter can select another valid session name.
 
 ## Browser interface
 
@@ -238,7 +238,7 @@ The interactive CLI uses a separate in process event set for its terminal bell. 
 
 ## Configuration boundary
 
-Configuration is loaded from `~/.pi-dash/config.json`. If the file does not exist, built in defaults are used.
+Configuration is loaded from `~/.pi-muxr/config.json`. If the file does not exist, built in defaults are used.
 
 Configuration controls:
 

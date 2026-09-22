@@ -40,7 +40,7 @@ function eventKey(row: DashboardRow): string {
 }
 
 function notificationTitle(row: DashboardRow): string {
-  return `pi-dash: ${row.state} in ${projectName(row.cwd)}`;
+  return `pi-muxr: ${row.state} in ${projectName(row.cwd)}`;
 }
 
 function notificationRow(row: DashboardRow): NotificationRow {

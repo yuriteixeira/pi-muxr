@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import type { DashboardConfig } from "../domain/status.js";
-import { DEFAULT_ACTIONABLE_STATES, PI_DASH_STATES } from "../domain/status.js";
+import { DEFAULT_ACTIONABLE_STATES, PI_MUXR_STATES } from "../domain/status.js";
 import { defaultConfigPath, defaultDatabasePath, defaultStateDir, expandHome } from "./paths.js";
 
 export const DEFAULT_CONFIG: DashboardConfig = {
@@ -28,8 +28,8 @@ export function loadConfig(configPath = defaultConfigPath()): DashboardConfig {
   }
 
   const stateDir = expandHome(raw.stateDir ?? DEFAULT_CONFIG.stateDir);
-  const databasePath = expandHome(raw.databasePath ?? (raw.stateDir ? `${stateDir}/pi-dash.sqlite` : DEFAULT_CONFIG.databasePath));
-  const actionableStates = (raw.actionableStates ?? DEFAULT_CONFIG.actionableStates).filter((state): state is DashboardConfig["actionableStates"][number] => PI_DASH_STATES.includes(state as never));
+  const databasePath = expandHome(raw.databasePath ?? (raw.stateDir ? `${stateDir}/pi-muxr.sqlite` : DEFAULT_CONFIG.databasePath));
+  const actionableStates = (raw.actionableStates ?? DEFAULT_CONFIG.actionableStates).filter((state): state is DashboardConfig["actionableStates"][number] => PI_MUXR_STATES.includes(state as never));
 
   return {
     ...DEFAULT_CONFIG,

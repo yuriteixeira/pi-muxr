@@ -20,7 +20,7 @@ async function startWebServer(options: WebServerOptions): Promise<void> {
 
   attachTerminalGateway(server);
   server.listen(port, host, () => {
-    console.log(`pi-dash web listening on http://${host}:${port}`);
+    console.log(`pi-muxr web listening on http://${host}:${port}`);
   });
 }
 

@@ -1,7 +1,7 @@
-import type { DashboardRow, PiDashState } from "./status.js";
+import type { DashboardRow, PiMuxrState } from "./status.js";
 import { projectName } from "./status.js";
 
-const STATE_PRIORITY: Record<PiDashState, number> = {
+const STATE_PRIORITY: Record<PiMuxrState, number> = {
   ASK: 0,
   ERROR: 1,
   DONE: 2,

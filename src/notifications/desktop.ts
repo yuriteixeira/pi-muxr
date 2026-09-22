@@ -1,9 +1,9 @@
 import { execFileSync } from "node:child_process";
-import type { PiDashStatus } from "../domain/status.js";
+import type { PiMuxrStatus } from "../domain/status.js";
 import { projectName } from "../domain/status.js";
 
-export function notifyStatus(status: PiDashStatus): void {
-  const title = `pi-dash: ${status.state} in ${projectName(status.cwd)}`;
+export function notifyStatus(status: PiMuxrStatus): void {
+  const title = `pi-muxr: ${status.state} in ${projectName(status.cwd)}`;
   const body = `${status.summary}\n${formatLocation(status)}`;
   tryNotify(title, body);
 }
@@ -18,7 +18,7 @@ function tryNotify(title: string, body: string): void {
   }
 }
 
-function formatLocation(status: PiDashStatus): string {
+function formatLocation(status: PiMuxrStatus): string {
   const session = status.tmuxSession ?? "?";
   const windowIndex = status.tmuxWindowIndex ?? "?";
   const pane = status.paneId ?? "?";
