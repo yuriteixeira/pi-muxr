@@ -20,11 +20,12 @@ A Pi extension publishes session state and the dashboard shows which sessions ne
 
 ```bash
 pi-dash
+pi-dash --quit-on-select
 pi-dash --list
 pi-dash --web
 ```
 
-The browser interface runs at `http://127.0.0.1:3042` by default.
+Use `--quit-on-select` to close the interactive dashboard after Enter focuses the selected row. The browser interface runs at `http://127.0.0.1:3042` by default.
 
 ## Development Documentation
 

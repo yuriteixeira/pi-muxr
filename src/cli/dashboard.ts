@@ -10,6 +10,10 @@ import { listTmuxPanes } from "../tmux/list-panes.js";
 import { DashboardComponent, type DashboardActions } from "./dashboard-component.js";
 import { buildDashboardRows } from "./rows.js";
 
+export interface DashboardOptions {
+  quitOnSelect?: boolean;
+}
+
 interface DashboardState {
   rows: DashboardRow[];
   selected: number;
@@ -25,12 +29,13 @@ interface DashboardRuntime {
   terminal: ProcessTerminal;
   tui: TUI;
   component: DashboardComponent;
+  quitOnSelect: boolean;
   refreshTimer: NodeJS.Timeout;
   presenceTimer: NodeJS.Timeout;
   cleaned: boolean;
 }
 
-export function runDashboard(): void {
+export function runDashboard(options: DashboardOptions = {}): void {
   const config = loadConfig();
   const db = openDatabase(config.databasePath);
   const presenceId = createPresenceId();
@@ -49,6 +54,7 @@ export function runDashboard(): void {
     terminal,
     tui,
     component,
+    quitOnSelect: options.quitOnSelect ?? false,
     refreshTimer: setInterval(() => refresh(runtime, true), 1_000),
     presenceTimer: setInterval(() => writeDashboardPresence(db, presenceId, process.env.TMUX_PANE ?? null), config.dashboardPresenceIntervalMs),
     cleaned: false,
@@ -140,7 +146,11 @@ function dismissAllReadFromInput(runtime: DashboardRuntime): void {
 
 function focusSelectedFromInput(runtime: DashboardRuntime): void {
   runtime.state.message = null;
-  focusSelected(runtime.db, runtime.state);
+  const rowSelected = focusSelected(runtime.db, runtime.state);
+  if (rowSelected && runtime.quitOnSelect) {
+    quit(runtime);
+    return;
+  }
   refresh(runtime, false);
 }
 
@@ -178,15 +188,15 @@ function dismissSelected(db: Database, state: DashboardState): void {
   if (row) dismissStatus(db, row.id, row.lastEventAt);
 }
 
-function focusSelected(db: Database, state: DashboardState): void {
+function focusSelected(db: Database, state: DashboardState): boolean {
   const row = state.rows[state.selected];
-  if (!row) return;
+  if (!row) return false;
   markRead(db, row.id, row.lastEventAt);
 
   const pane = findPaneForFocus(row);
   if (!pane) {
     state.message = `Pane ${row.paneId ?? "?"} is no longer available. Refresh marks this row as STALE.`;
-    return;
+    return true;
   }
 
   try {
@@ -195,6 +205,7 @@ function focusSelected(db: Database, state: DashboardState): void {
   } catch (error) {
     state.message = `Failed to focus ${pane.paneId}: ${formatError(error)}`;
   }
+  return true;
 }
 
 function findPaneForFocus(row: DashboardRow): TmuxPane | null {

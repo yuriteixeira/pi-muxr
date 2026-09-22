@@ -12,10 +12,11 @@ const HELP = `pi-dash
 
 Usage:
   pi-dash              Open interactive dashboard
-  pi-dash --list       Print current rows and exit
-  pi-dash --config     Print resolved config
-  pi-dash --web        Serve browser terminal for a pi-dash tmux session
-  pi-dash --help       Show this help
+  pi-dash --list            Print current rows and exit
+  pi-dash --config          Print resolved config
+  pi-dash --web             Serve browser terminal for a pi-dash tmux session
+  pi-dash --quit-on-select  Exit after Enter focuses the selected row
+  pi-dash --help            Show this help
 
 Keys: ↑/↓ or j/k select, Enter focus/read, d dismiss, D dismiss all read, r refresh, q quit.
 
@@ -33,7 +34,7 @@ function main(argv: string[]): void {
     finally { db.close(); }
     return;
   }
-  runDashboard();
+  runDashboard({ quitOnSelect: argv.includes("--quit-on-select") });
 }
 
 main(process.argv.slice(2));
