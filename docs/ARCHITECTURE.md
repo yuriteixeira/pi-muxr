@@ -142,9 +142,10 @@ This check is performed when rows are read. The database does not need a cleanup
 
 ## CLI dashboard flow
 
-The CLI has three modes:
+The CLI has four modes:
 
 - Interactive dashboard: `pi-dash`
+- Tmux sidebar toggle: `pi-dash --sidebar [left|right]`
 - Plain output: `pi-dash --list`
 - Browser server: `pi-dash --web`
 
@@ -179,6 +180,8 @@ The rendering layer uses `@earendil-works/pi-tui`. Dashboard orchestration, stat
 The extension uses `tmux list-panes` to discover pane metadata. The dashboard joins this data with the session rows by pane ID.
 
 When the user focuses a row, `src/tmux/focus.ts` selects the pane and switches to its tmux session and window. When the CLI runs outside tmux, it reports the commands needed to focus the pane instead of pretending that the focus succeeded.
+
+The sidebar command splits every window in every tmux session and starts the same pi dash entrypoint in each new pane. The default side is right, and each pane uses at most 25 percent of the window width. A tmux pane option marks each pane. The next sidebar command finds the markers and closes all dashboard sidebar panes.
 
 The browser gateway uses a separate tmux session, named `pi-dash-web` by default. A query parameter can select another valid session name.
 

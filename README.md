@@ -20,10 +20,15 @@ A Pi extension publishes session state and the dashboard shows which sessions ne
 
 ```bash
 pi-dash
+pi-dash --sidebar
+pi-dash --sidebar right
+pi-dash --sidebar left
 pi-dash --quit-on-select
 pi-dash --list
 pi-dash --web
 ```
+
+Run `pi-dash --sidebar` inside tmux to open a full height dashboard pane on the right side of every window in every tmux session. Pass `left` or `right` to select the side. Each pane uses at most 25 percent of the window width. Run the command again to close all dashboard sidebar panes.
 
 Use `--quit-on-select` to close the interactive dashboard after Enter focuses the selected row. The browser interface runs at `http://127.0.0.1:3042` by default.
 

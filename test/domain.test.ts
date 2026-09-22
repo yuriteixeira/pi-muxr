@@ -10,6 +10,7 @@ import { openDatabase } from "../src/state/database.ts";
 import { readStatuses } from "../src/state/read-statuses.ts";
 import { dismissAllRead, dismissStatus, markRead, upsertStatus } from "../src/state/write-status.ts";
 import { parseTmuxPanes } from "../src/tmux/list-panes.ts";
+import { buildPiDashCommand, buildSidebarSplitArgs, parseSidebarPaneInventory, parseSidebarSide } from "../src/tmux/sidebar.ts";
 import { renderDashboardLines } from "../src/cli/dashboard-component.ts";
 import { getStateIcon } from "../src/cli/dashboard-icons.ts";
 import { renderRows } from "../src/cli/format.ts";
@@ -29,6 +30,32 @@ test("actionable/read/dismissed calculation", () => {
 test("tmux parser", () => {
   const panes = parseTmuxPanes("work\t1\tapi\t%14\t1\tbash\ttitle\t123\n");
   assert.deepEqual(panes[0], { sessionName: "work", windowIndex: "1", windowName: "api", paneId: "%14", paneActive: true, currentCommand: "bash", paneTitle: "title", panePid: 123 });
+});
+
+test("sidebar option defaults to right and accepts an explicit side", () => {
+  assert.equal(parseSidebarSide([]), null);
+  assert.equal(parseSidebarSide(["--sidebar"]), "right");
+  assert.equal(parseSidebarSide(["--sidebar", "--list"]), "right");
+  assert.equal(parseSidebarSide(["--sidebar", "left"]), "left");
+  assert.equal(parseSidebarSide(["--sidebar", "right"]), "right");
+  assert.throws(() => parseSidebarSide(["--sidebar", "top"]), /accepts only/);
+});
+
+test("sidebar pane parser finds marked panes and one target per window", () => {
+  const output = "%1\t@1\t\n%2\t@1\tleft\n%3\t@2\tright\n%4\t@2\t\n%5\t@3\tother\n";
+  assert.deepEqual(parseSidebarPaneInventory(output), {
+    sidebarPaneIds: ["%2", "%3"],
+    targetPaneIds: ["%1", "%3", "%5"],
+  });
+});
+
+test("sidebar split places a full height pane with at most 25 percent width", () => {
+  const right = buildSidebarSplitArgs("right", "%1", "pi-dash");
+  const left = buildSidebarSplitArgs("left", "%1", "pi-dash");
+
+  assert.deepEqual(right, ["split-window", "-d", "-f", "-h", "-l", "25%", "-t", "%1", "-P", "-F", "#{pane_id}", "pi-dash"]);
+  assert.deepEqual(left, ["split-window", "-d", "-f", "-h", "-l", "25%", "-b", "-t", "%1", "-P", "-F", "#{pane_id}", "pi-dash"]);
+  assert.equal(buildPiDashCommand("/opt/node bin/node", "/tmp/pi-dash's/index.js"), "'/opt/node bin/node' '/tmp/pi-dash'\\''s/index.js'");
 });
 
 test("sqlite status markers", () => {
