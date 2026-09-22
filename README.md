@@ -92,6 +92,31 @@ tmux source-file ~/.tmux.conf
 
 The popup closes after you select a session because it uses `--quit-on-select`. The sidebar stays pinned across existing and new tmux sessions and windows. Use the same sidebar shortcut again to close it and remove the pin.
 
+## Configuration
+
+Configuration is optional. When `~/.pi-muxr/config.json` does not exist, pi-muxr uses its built in defaults.
+
+The repository provides [an example configuration](examples/config.json) with every available setting. From a repository checkout, copy it to the configuration path:
+
+```bash
+mkdir -p ~/.pi-muxr
+cp examples/config.json ~/.pi-muxr/config.json
+```
+
+You can then edit the copied file. The settings control:
+
+- The state directory and SQLite database path.
+- Which session states need action.
+- Desktop notifications and the dashboard bell.
+- Whether the dashboard shows dismissed rows.
+- Stale session, heartbeat, and dashboard presence timing.
+
+To check the active configuration, including defaults and your changes, run:
+
+```bash
+pi-muxr --config
+```
+
 ## Development Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
