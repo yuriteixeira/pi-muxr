@@ -1,10 +1,11 @@
 # Welcome to `pi-muxr`!
 
-If you use [Pi](https://pi.dev) and a die-hard [Tmux](https://github.com/tmux/tmux) user, and all you ever wanted from Herdr is it dashboard & navigation capabilitie, **you came to the right place!**
+If you use [Pi](https://pi.dev) and is a die-hard [Tmux](https://github.com/tmux/tmux) user, maybe all you ever wanted from [Herdr](https://herdr.dev/) was its dashboard & navigation capabilities. 
+Then, **you came to the right place!**
 
 The `pi-muxr` extension provides:
 
-1. A dashboard showing Pi coding sessions running on tmux panes (including a toggle for a sidebar view)
+1. A dashboard showing Pi sessions running on Tmux panes (including a sidebar mode)
 2. A web app serving as a proxy for those, so you can continue your work even if you're away from your keyboard.
 
 | Sidebar | Fullscreen | Web App |
@@ -91,14 +92,6 @@ The repository provides [an example configuration](examples/config.json) with ev
 mkdir -p ~/.pi-muxr
 cp examples/config.json ~/.pi-muxr/config.json
 ```
-
-You can then edit the copied file. The settings control:
-
-- The state directory and SQLite database path.
-- Which session states need action in the dashboard and browser interface.
-- Desktop notifications for `ASK`, `ERROR`, and `DONE`, and the dashboard bell.
-- Whether the dashboard shows dismissed rows.
-- Stale session, heartbeat, and dashboard presence timing.
 
 To check the active configuration, including defaults and your changes, run:
 
