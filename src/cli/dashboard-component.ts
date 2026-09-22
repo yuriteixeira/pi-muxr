@@ -85,21 +85,19 @@ export function renderDashboardLines(options: RenderDashboardOptions): string[] 
   const height = Math.max(1, options.height);
   const innerWidth = Math.max(0, width - 2);
   const messageLines = renderMessageLines(options.message, innerWidth, theme);
-  const fixedLineCount = 7 + messageLines.length;
-  const bodyHeight = Math.max(1, height - fixedLineCount);
   const mode = chooseDashboardLayout(width);
+  const showStatusSection = height >= messageLines.length + 8 && statusSectionFits(options.rows, mode, width, theme);
+  const fixedLineCount = 2 + messageLines.length + (showStatusSection ? 5 : 0);
+  const bodyHeight = Math.max(1, height - fixedLineCount);
   const rows = renderRowsForViewport(options.rows, options.selected, mode, innerWidth, bodyHeight, options.now ?? Date.now(), theme);
+  const statusSection = showStatusSection ? renderStatusSection(options.rows, mode, width, theme) : [];
 
   const lines = [
     renderHeader(width, theme),
     ...messageLines.map((line) => frameLine(line, width, theme, theme.surface)),
     ...rows.map((line) => frameLine(line.text, width, theme, line.style, line.selected ? theme.accent : undefined)),
     renderBottom(width, theme),
-    renderSectionTop("status", width, theme),
-    frameLine(renderStats(options.rows, mode, theme), width, theme, theme.surface),
-    renderSeparator(width, theme),
-    frameLine(renderFooter(theme), width, theme, theme.surface),
-    renderBottom(width, theme),
+    ...statusSection,
   ];
 
   return lines.slice(0, height).map((line) => truncateToWidth(line, width, "", false));
@@ -136,8 +134,8 @@ function renderEmptyState(width: number, height: number, theme: DashboardTheme):
 function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLayoutMode, width: number, now: number, theme: DashboardTheme): string {
   const text = toRowText(row, now);
   const visual = getStateVisual(row.displayState, theme);
-  const indicator = selected ? theme.accent("┃") : " ";
-  const state = visual.style(`${indicator} ${visual.icon} ${visual.label}`);
+  const indicator = selected ? theme.accent("❯") : " ";
+  const state = `${indicator} ${visual.style(`${visual.icon} ${visual.label}`)}`;
   const summaryStyle = row.unread && row.actionable ? theme.bright : theme.text;
   const innerWidth = Math.max(0, width);
   const columns = mode === "wide"
@@ -163,6 +161,21 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
 
 function renderHeader(width: number, theme: DashboardTheme): string {
   return renderSectionTop("pi-dash", width, theme, theme.bright);
+}
+
+function statusSectionFits(rows: DashboardRow[], mode: DashboardLayoutMode, width: number, theme: DashboardTheme): boolean {
+  const contentWidth = Math.max(visibleWidth(renderStats(rows, mode, theme)), visibleWidth(renderFooter(theme)));
+  return width >= contentWidth + 2;
+}
+
+function renderStatusSection(rows: DashboardRow[], mode: DashboardLayoutMode, width: number, theme: DashboardTheme): string[] {
+  return [
+    renderSectionTop("status", width, theme),
+    frameLine(renderStats(rows, mode, theme), width, theme, theme.surface),
+    renderSeparator(width, theme),
+    frameLine(renderFooter(theme), width, theme, theme.surface),
+    renderBottom(width, theme),
+  ];
 }
 
 function renderStats(rows: DashboardRow[], mode: DashboardLayoutMode, theme: DashboardTheme): string {

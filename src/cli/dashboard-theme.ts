@@ -65,7 +65,7 @@ export function createDashboardTheme(palette: Base16Palette): DashboardTheme {
     palette,
     background: ansiBackground(palette.base00),
     surface: identity,
-    selectedSurface: ansiBackground(palette.base01),
+    selectedSurface: identity,
     border: ansiForeground(palette.base03),
     muted: ansiForeground(palette.base04),
     text: ansiForeground(palette.base05),

@@ -103,7 +103,7 @@ test("modern dashboard uses named Base16 roles with ANSI 16 colors", () => {
   assert.equal(DEFAULT_DASHBOARD_THEME.palette.base0D, 12);
   assert.equal(DEFAULT_DASHBOARD_THEME.accent("x"), "\x1b[94mx\x1b[39m");
   assert.equal(DEFAULT_DASHBOARD_THEME.surface("x"), "x");
-  assert.equal(DEFAULT_DASHBOARD_THEME.selectedSurface("x"), "\x1b[100mx\x1b[49m");
+  assert.equal(DEFAULT_DASHBOARD_THEME.selectedSurface("x"), "x");
 
   const { palette: _palette, ...roles } = DEFAULT_DASHBOARD_THEME;
   const renderedRoles = Object.values(roles).map((style) => style("x")).join("");
@@ -125,6 +125,29 @@ test("modern dashboard render lines fit the provided width", () => {
     assert.ok(lines.length <= 12);
     assert.ok(lines.every((line) => visibleWidth(line) <= width), `line exceeded width ${width}: ${lines.join("\n")}`);
   }
+});
+
+test("dashboard hides the status section when the terminal is too small", () => {
+  const shortDashboard = renderDashboardLines({ rows: [], selected: 0, message: null, width: 90, height: 7, now: 2_000 }).join("\n");
+  const narrowDashboard = renderDashboardLines({ rows: [], selected: 0, message: null, width: 60, height: 12, now: 2_000 }).join("\n");
+  const largeDashboard = renderDashboardLines({ rows: [], selected: 0, message: null, width: 90, height: 8, now: 2_000 }).join("\n");
+
+  for (const dashboard of [shortDashboard, narrowDashboard]) {
+    assert.doesNotMatch(dashboard, /status/);
+    assert.doesNotMatch(dashboard, /select.*focus/);
+  }
+  assert.match(largeDashboard, /status/);
+  assert.match(largeDashboard, /select.*focus/);
+});
+
+test("selected rows preserve the status color", () => {
+  const status: PiDashStatus = { id: "1", paneId: null, tmuxSession: "main", tmuxWindow: null, tmuxWindowIndex: null, pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "DONE", severity: "medium", summary: "Done", lastEventAt: 1_000, heartbeatAt: 1_000 };
+  const rows = buildDashboardRows([status], [], DEFAULT_CONFIG, 2_000);
+  const selectedLine = renderDashboardLines({ rows, selected: 0, message: null, width: 90, height: 11, now: 2_000 })[1]!;
+  const unselectedLine = renderDashboardLines({ rows, selected: 1, message: null, width: 90, height: 11, now: 2_000 })[1]!;
+
+  assert.match(selectedLine, /\x1b\[94m❯\x1b\[39m \x1b\[92m DONE\x1b\[39m/);
+  assert.match(unselectedLine, / \x1b\[92m DONE\x1b\[39m/);
 });
 
 test("dashboard tables show the root path beside the session without the tmux pane path", () => {
