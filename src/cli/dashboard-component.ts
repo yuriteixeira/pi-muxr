@@ -141,15 +141,15 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
   const summaryStyle = row.unread && row.actionable ? theme.bright : theme.text;
   const innerWidth = Math.max(0, width);
   const columns = mode === "wide"
-    ? { session: 22, project: 24, age: 6, pane: 22 }
+    ? { session: 16, project: 24, age: 6 }
     : mode === "medium"
-      ? { session: 18, project: 22, age: 6, pane: 0 }
+      ? { session: 14, project: 22, age: 6 }
       : innerWidth >= 46
-        ? { session: 14, project: 18, age: 0, pane: 0 }
-        : { session: 12, project: 14, age: 0, pane: 0 };
+        ? { session: 12, project: 18, age: 0 }
+        : { session: 10, project: 14, age: 0 };
   const statusWidth = 11;
-  const fixedWidth = statusWidth + columns.session + columns.project + columns.age + columns.pane;
-  const separatorWidth = [statusWidth, columns.session, columns.project, columns.age, columns.pane].filter((value) => value > 0).length - 1;
+  const fixedWidth = statusWidth + columns.session + columns.project + columns.age;
+  const separatorWidth = [statusWidth, columns.session, columns.project, columns.age].filter((value) => value > 0).length - 1;
   const summaryWidth = Math.max(0, innerWidth - fixedWidth - separatorWidth);
   const cells = [
     padCell(state, statusWidth),
@@ -157,7 +157,6 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
     padCell(theme.muted(fitPlainCellEnd(text.project, columns.project)), columns.project),
   ];
   if (columns.age > 0) cells.push(padCell(theme.muted(text.age), columns.age));
-  if (columns.pane > 0) cells.push(padCell(theme.info(text.pane), columns.pane));
   if (summaryWidth > 0) cells.push(summaryStyle(fitPlainCell(text.summary, summaryWidth)));
   return cells.join(" ");
 }

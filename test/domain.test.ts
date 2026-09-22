@@ -12,6 +12,7 @@ import { dismissAllRead, dismissStatus, markRead, upsertStatus } from "../src/st
 import { parseTmuxPanes } from "../src/tmux/list-panes.ts";
 import { renderDashboardLines } from "../src/cli/dashboard-component.ts";
 import { getStateIcon } from "../src/cli/dashboard-icons.ts";
+import { renderRows } from "../src/cli/format.ts";
 import { chooseDashboardLayout } from "../src/cli/dashboard-layout.ts";
 import { DEFAULT_DASHBOARD_THEME } from "../src/cli/dashboard-theme.ts";
 import { buildDashboardRows } from "../src/cli/rows.ts";
@@ -123,5 +124,18 @@ test("modern dashboard render lines fit the provided width", () => {
     const lines = renderDashboardLines({ rows, selected: 0, message: "Saved", width, height: 12, now: 2_000 });
     assert.ok(lines.length <= 12);
     assert.ok(lines.every((line) => visibleWidth(line) <= width), `line exceeded width ${width}: ${lines.join("\n")}`);
+  }
+});
+
+test("dashboard tables show the root path beside the session without the tmux pane path", () => {
+  const status: PiDashStatus = { id: "1", paneId: "%1", tmuxSession: "main", tmuxWindow: "api", tmuxWindowIndex: "2", pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "ASK", severity: "high", summary: "Waiting", lastEventAt: 1_000, heartbeatAt: 1_000 };
+  const rows = buildDashboardRows([status], [parseTmuxPanes("main\t2\tapi\t%1\t1\tbash\ttitle\t123\n")[0]!], DEFAULT_CONFIG, 2_000);
+  const interactiveTable = renderDashboardLines({ rows, selected: 0, message: null, width: 130, height: 11, now: 2_000 }).join("\n");
+  const plainTable = renderRows(rows, 0, 2_000);
+
+  for (const table of [interactiveTable, plainTable]) {
+    assert.match(table, /main/);
+    assert.match(table, /\/tmp\/project/);
+    assert.doesNotMatch(table, /main:2:api\.%1/);
   }
 });

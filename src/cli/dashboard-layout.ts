@@ -7,7 +7,6 @@ export type DashboardLayoutMode = "wide" | "medium" | "narrow";
 
 export interface RowText {
   age: string;
-  pane: string;
   project: string;
   session: string;
   summary: string;
@@ -39,7 +38,6 @@ export function getVisibleRowRange(totalRows: number, selected: number, maxRows:
 export function toRowText(row: DashboardRow, now = Date.now()): RowText {
   return {
     age: shouldRunRowTimer(row) ? formatAge(now - row.lastEventAt) : "",
-    pane: formatPane(row),
     project: shortenPath(row.cwd),
     session: row.pane?.sessionName ?? row.tmuxSession ?? "?",
     summary: row.summary,
@@ -48,14 +46,6 @@ export function toRowText(row: DashboardRow, now = Date.now()): RowText {
 
 function shouldRunRowTimer(row: DashboardRow): boolean {
   return row.displayState === "RUN" || row.displayState === "ASK" || row.displayState === "QUEUED";
-}
-
-export function formatPane(row: DashboardRow): string {
-  const session = row.pane?.sessionName ?? row.tmuxSession ?? "?";
-  const windowIndex = row.pane?.windowIndex ?? row.tmuxWindowIndex ?? "?";
-  const paneId = row.pane?.paneId ?? row.paneId ?? "?";
-  const windowName = row.pane?.windowName ?? row.tmuxWindow ?? "";
-  return `${session}:${windowIndex}${windowName ? `:${windowName}` : ""}.${paneId}`;
 }
 
 export function shortenPath(cwd: string): string {
