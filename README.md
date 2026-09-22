@@ -1,7 +1,6 @@
 # Welcome to `pi-muxr`!
 
-If you use [Pi](https://pi.dev) and if you sorta like `herdr`, but if you're a die-hard tmux user that want your tooling to 
-adapt to your workflow and not the other way around, you came to the right place.
+If you use [Pi](https://pi.dev) and if you sorta like `herdr`, but you're a die-hard tmux user that doesn't want to change your tooling or workflow, you came to the right place.
 
 `pi-muxr` is a dashboard for Pi coding sessions that run in tmux.
 
