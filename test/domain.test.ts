@@ -15,7 +15,7 @@ import { getStateIcon } from "../src/cli/dashboard-icons.ts";
 import { chooseDashboardLayout } from "../src/cli/dashboard-layout.ts";
 import { DEFAULT_DASHBOARD_THEME } from "../src/cli/dashboard-theme.ts";
 import { buildDashboardRows } from "../src/cli/rows.ts";
-import { resolveAgentEndStatus } from "../src/extension/pi-dash.ts";
+import { formatToolName, resolveAgentEndStatus, summarizeAskUserRequest, summarizeAskUserResult, summarizeToolCall } from "../src/extension/pi-dash.ts";
 
 test("actionable/read/dismissed calculation", () => {
   const status = { state: "DONE", lastEventAt: 10 } as const;
@@ -59,6 +59,16 @@ test("dashboard rows only include active sessions and hide dismissed rows", () =
 
   const dismissedRows = buildDashboardRows([{ ...status, dismissedUntilEventAt: 100 }], [], { ...DEFAULT_CONFIG, showDismissedRows: false }, 100_000);
   assert.equal(dismissedRows.length, 0);
+});
+
+test("extension wraps tool names in square brackets without a trailing colon", () => {
+  assert.equal(formatToolName("bash"), "[bash]");
+  assert.equal(summarizeToolCall("bash", { command: "pnpm test" }), "[bash] pnpm test");
+  assert.equal(summarizeToolCall("read", { path: "README.md" }), "[read] README.md");
+  assert.equal(summarizeAskUserRequest({ question: "Continue?" }), "[ask_user] Continue?");
+  assert.equal(summarizeAskUserRequest({}), "[ask_user] waiting for input");
+  assert.equal(summarizeAskUserResult({ details: { cancelled: true } }), "[ask_user] cancelled");
+  assert.equal(summarizeAskUserResult({ details: { response: { kind: "selection", selections: ["Yes"] } } }), "[ask_user] answered: Yes");
 });
 
 test("extension reports DONE when agent recovered from a tool error", () => {

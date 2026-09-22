@@ -90,7 +90,7 @@ function handleToolCall(runtime: RuntimeState, event: any, ctx: any): void {
     return;
   }
 
-  writeState(runtime, ctx, "RUN", "low", `tool: ${event.toolName}${summarizeToolInput(event.toolName, input)}`);
+  writeState(runtime, ctx, "RUN", "low", summarizeToolCall(event.toolName, input));
 }
 
 function handleToolResult(runtime: RuntimeState, event: any, ctx: any): void {
@@ -100,7 +100,7 @@ function handleToolResult(runtime: RuntimeState, event: any, ctx: any): void {
     return;
   }
 
-  runtime.lastError = event.isError === true ? `${event.toolName}: ${summarizeResult(event)}` : null;
+  runtime.lastError = event.isError === true ? `${formatToolName(event.toolName)} ${summarizeResult(event)}` : null;
 }
 
 export function resolveAgentEndStatus(event: unknown, fallbackError: string | null): Pick<PiDashStatus, "state" | "severity" | "summary"> {
@@ -122,7 +122,7 @@ function summarizeAgentEndFailure(event: unknown): string | null {
   const lastMessage = messages.at(-1);
   if (isRecord(lastMessage) && lastMessage.role === "toolResult" && lastMessage.isError === true) {
     const toolName = typeof lastMessage.toolName === "string" ? lastMessage.toolName : "tool";
-    return `${toolName}: ${summarizeResult(lastMessage)}`;
+    return `${formatToolName(toolName)} ${summarizeResult(lastMessage)}`;
   }
 
   return null;
@@ -226,17 +226,17 @@ function formatTurnIndex(turnIndex: unknown): string {
   return typeof turnIndex === "number" ? String(turnIndex + 1) : "?";
 }
 
-function summarizeAskUserRequest(input: unknown): string {
+export function summarizeAskUserRequest(input: unknown): string {
   const question = extractAskQuestion(input);
-  return question ? `ask_user: ${truncate(question, 180)}` : "ask_user: waiting for input";
+  return question ? `${formatToolName("ask_user")} ${truncate(question, 180)}` : `${formatToolName("ask_user")} waiting for input`;
 }
 
-function summarizeAskUserResult(event: any): string {
-  if (event.details?.cancelled) return "ask_user: cancelled";
+export function summarizeAskUserResult(event: any): string {
+  if (event.details?.cancelled) return `${formatToolName("ask_user")} cancelled`;
   const response = event.details?.response;
-  if (response?.kind === "selection" && Array.isArray(response.selections)) return `ask_user answered: ${truncate(response.selections.join(", "), 160)}`;
-  if (response?.kind === "freeform" && typeof response.text === "string") return `ask_user answered: ${truncate(response.text, 160)}`;
-  return "ask_user answered";
+  if (response?.kind === "selection" && Array.isArray(response.selections)) return `${formatToolName("ask_user")} answered: ${truncate(response.selections.join(", "), 160)}`;
+  if (response?.kind === "freeform" && typeof response.text === "string") return `${formatToolName("ask_user")} answered: ${truncate(response.text, 160)}`;
+  return `${formatToolName("ask_user")} answered`;
 }
 
 function extractAskQuestion(input: unknown): string | null {
@@ -245,13 +245,21 @@ function extractAskQuestion(input: unknown): string | null {
   return typeof question === "string" && question.trim() ? question.trim() : null;
 }
 
-function summarizeToolInput(toolName: string, input: unknown): string {
+export function formatToolName(toolName: unknown): string {
+  return `[${typeof toolName === "string" ? toolName : "tool"}]`;
+}
+
+export function summarizeToolCall(toolName: unknown, input: unknown): string {
+  return `${formatToolName(toolName)}${summarizeToolInput(toolName, input)}`;
+}
+
+function summarizeToolInput(toolName: unknown, input: unknown): string {
   if (!input || typeof input !== "object") return "";
   const record = input as Record<string, unknown>;
-  if (toolName === "bash" && typeof record.command === "string") return `: ${truncate(record.command, 160)}`;
-  if (typeof record.path === "string") return `: ${truncate(record.path, 160)}`;
-  if (typeof record.url === "string") return `: ${truncate(record.url, 160)}`;
-  if (typeof record.query === "string") return `: ${truncate(record.query, 160)}`;
+  if (toolName === "bash" && typeof record.command === "string") return ` ${truncate(record.command, 160)}`;
+  if (typeof record.path === "string") return ` ${truncate(record.path, 160)}`;
+  if (typeof record.url === "string") return ` ${truncate(record.url, 160)}`;
+  if (typeof record.query === "string") return ` ${truncate(record.query, 160)}`;
   try { return ` ${truncate(JSON.stringify(input), 120)}`; } catch { return ""; }
 }
 
