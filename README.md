@@ -1,28 +1,15 @@
 # Welcome to `pi-muxr`!
 
-If you use [Pi](https://pi.dev) and if you sorta like `herdr`, but you're a die-hard tmux user that doesn't want to change your tooling or workflow, you came to the right place.
+If you use [Pi](https://pi.dev) and a die-hard [Tmux](https://github.com/tmux/tmux) user, and all you ever wanted from Herdr is it dashboard & navigation capabilitie, **you came to the right place!**
 
-`pi-muxr` is a dashboard for Pi coding sessions that run in tmux. It also provides a webapp, so you can continue your work whenever you're away from your keyboard!
+The `pi-muxr` extension provides:
 
-![Sidebar](./docs/resources/sidebar.png)
+1. A dashboard showing Pi coding sessions running on tmux panes (including a toggle for a sidebar view)
+2. A web app serving as a proxy for those, so you can continue your work even if you're away from your keyboard.
 
-![Fullscreen](./docs/resources/fullscreen.png)
-
-![Web](./docs/resources/web.png)
-
-## Features
-
-- Tracks multiple Pi sessions across tmux.
-- Shows `ASK`, `ERROR`, `DONE`, `RUN`, and `IDLE` states for active sessions.
-- Sorts actionable sessions first.
-- Focuses the owning tmux pane from the keyboard.
-- Supports read and dismiss actions.
-- Detects and hides stale sessions with heartbeats and pane checks.
-- Provides terminal and browser interfaces.
-- Provides a toggleable pinned sidebar across all tmux sessions and windows.
-- Sends terminal bell, desktop, and browser notifications.
-- Supports configurable dashboard and browser actionable states.
-- Supports configurable desktop notification and dashboard bell behavior.
+| Sidebar | Fullscreen | Web App |
+| - | - | - |
+| ![Sidebar](./docs/resources/sidebar.png) | ![Fullscreen](./docs/resources/fullscreen.png) | ![Web](./docs/resources/web.png) |
 
 ## Installation
 
@@ -119,7 +106,7 @@ To check the active configuration, including defaults and your changes, run:
 pi-muxr --config
 ```
 
-## Development Documentation
+## If you're interested in the code
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Building and local setup](docs/BUILDING.md)
