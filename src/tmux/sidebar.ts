@@ -10,7 +10,7 @@ export interface SidebarPaneInventory {
 
 const SIDEBAR_OPTION = "@pi-muxr-sidebar";
 const SIDEBAR_SIDE_OPTION = "@pi-muxr-sidebar-side";
-const SIDEBAR_WINDOW_HOOK = "after-new-window[731]";
+const SIDEBAR_HOOKS = ["after-new-window[731]", "after-new-session[731]"] as const;
 const SIDEBAR_PANES_FORMAT = `#{pane_id}\t#{window_id}\t#{${SIDEBAR_OPTION}}`;
 
 export function parseSidebarSide(argv: string[]): SidebarSide | null {
@@ -63,6 +63,14 @@ export function buildPiMuxrCommand(execPath: string, entrypoint: string): string
 export function buildSidebarHookCommand(execPath: string, entrypoint: string): string {
   const command = `${buildPiMuxrCommand(execPath, entrypoint)} --sidebar-window '#{window_id}'`;
   return `run-shell ${quoteShellArgument(command)}`;
+}
+
+export function buildSidebarHookArgs(hookCommand: string): string[][] {
+  return SIDEBAR_HOOKS.map((hook) => ["set-hook", "-g", hook, hookCommand]);
+}
+
+export function buildSidebarUnhookArgs(): string[][] {
+  return SIDEBAR_HOOKS.map((hook) => ["set-hook", "-g", "-u", hook]);
 }
 
 export function toggleSidebar(side: SidebarSide): SidebarToggleResult {
@@ -132,16 +140,21 @@ function readPinnedSidebarSide(): SidebarSide | null {
 function pinSidebar(side: SidebarSide, hookCommand: string): void {
   execFileSync("tmux", ["set-option", "-g", SIDEBAR_SIDE_OPTION, side], { stdio: "ignore" });
   try {
-    execFileSync("tmux", ["set-hook", "-g", SIDEBAR_WINDOW_HOOK, hookCommand], { stdio: "ignore" });
+    for (const args of buildSidebarHookArgs(hookCommand)) execFileSync("tmux", args, { stdio: "ignore" });
   } catch (error) {
+    removeSidebarHooks();
     execFileSync("tmux", ["set-option", "-gu", SIDEBAR_SIDE_OPTION], { stdio: "ignore" });
     throw error;
   }
 }
 
 function unpinSidebar(): void {
-  execFileSync("tmux", ["set-hook", "-gu", SIDEBAR_WINDOW_HOOK], { stdio: "ignore" });
+  removeSidebarHooks();
   execFileSync("tmux", ["set-option", "-gu", SIDEBAR_SIDE_OPTION], { stdio: "ignore" });
+}
+
+function removeSidebarHooks(): void {
+  for (const args of buildSidebarUnhookArgs()) execFileSync("tmux", args, { stdio: "ignore" });
 }
 
 function createSidebarPanes(side: SidebarSide, targetPaneIds: string[], command: string): void {

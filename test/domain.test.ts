@@ -10,7 +10,7 @@ import { openDatabase } from "../src/state/database.ts";
 import { readStatuses } from "../src/state/read-statuses.ts";
 import { dismissAllRead, dismissStatus, markRead, upsertStatus } from "../src/state/write-status.ts";
 import { parseTmuxPanes } from "../src/tmux/list-panes.ts";
-import { buildPiMuxrCommand, buildSidebarHookCommand, buildSidebarSplitArgs, parseSidebarPaneInventory, parseSidebarSide, parseSidebarWindowTarget } from "../src/tmux/sidebar.ts";
+import { buildPiMuxrCommand, buildSidebarHookArgs, buildSidebarHookCommand, buildSidebarSplitArgs, buildSidebarUnhookArgs, parseSidebarPaneInventory, parseSidebarSide, parseSidebarWindowTarget } from "../src/tmux/sidebar.ts";
 import { renderDashboardLines } from "../src/cli/dashboard-component.ts";
 import { getStateIcon } from "../src/cli/dashboard-icons.ts";
 import { renderRows } from "../src/cli/format.ts";
@@ -65,10 +65,19 @@ test("sidebar split places a full height pane with at most 25 percent width", ()
   assert.deepEqual(right, ["split-window", "-d", "-f", "-h", "-l", "25%", "-t", "%1", "-P", "-F", "#{pane_id}", "pi-muxr"]);
   assert.deepEqual(left, ["split-window", "-d", "-f", "-h", "-l", "25%", "-b", "-t", "%1", "-P", "-F", "#{pane_id}", "pi-muxr"]);
   assert.equal(buildPiMuxrCommand("/opt/node bin/node", "/tmp/pi-muxr's/index.js"), "'/opt/node bin/node' '/tmp/pi-muxr'\\''s/index.js'");
+  const hookCommand = buildSidebarHookCommand("/opt/node bin/node", "/tmp/pi-muxr/index.js");
   assert.equal(
-    buildSidebarHookCommand("/opt/node bin/node", "/tmp/pi-muxr/index.js"),
+    hookCommand,
     "run-shell ''\\''/opt/node bin/node'\\'' '\\''/tmp/pi-muxr/index.js'\\'' --sidebar-window '\\''#{window_id}'\\'''",
   );
+  assert.deepEqual(buildSidebarHookArgs(hookCommand), [
+    ["set-hook", "-g", "after-new-window[731]", hookCommand],
+    ["set-hook", "-g", "after-new-session[731]", hookCommand],
+  ]);
+  assert.deepEqual(buildSidebarUnhookArgs(), [
+    ["set-hook", "-g", "-u", "after-new-window[731]"],
+    ["set-hook", "-g", "-u", "after-new-session[731]"],
+  ]);
 });
 
 test("sqlite status markers", () => {
