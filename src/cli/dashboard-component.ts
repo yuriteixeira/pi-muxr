@@ -133,7 +133,7 @@ function renderEmptyState(width: number, height: number, theme: DashboardTheme):
 
 function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLayoutMode, width: number, now: number, theme: DashboardTheme): string {
   const text = toRowText(row, now);
-  const visual = getStateVisual(row.displayState, theme);
+  const visual = getStateVisual(row.displayState, theme, now);
   const indicator = selected ? theme.accent("❯") : " ";
   const state = `${indicator} ${visual.style(`${visual.icon} ${visual.label}`)}`;
   const summaryStyle = row.unread && row.actionable ? theme.bright : theme.text;

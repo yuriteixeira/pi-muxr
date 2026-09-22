@@ -89,11 +89,14 @@ test("extension reports ERROR for failed final agent message", () => {
   assert.deepEqual(status, { state: "ERROR", severity: "high", summary: "provider failed" });
 });
 
-test("modern dashboard maps states to nerd font icons", () => {
+test("modern dashboard maps states to status icons", () => {
   assert.equal(getStateIcon("ASK"), "");
   assert.equal(getStateIcon("ERROR"), "");
   assert.equal(getStateIcon("DONE"), "");
-  assert.equal(getStateIcon("RUN"), "");
+  assert.equal(getStateIcon("RUN", 0), "⠋");
+  assert.equal(getStateIcon("RUN", 80), "⠙");
+  assert.equal(getStateIcon("RUN", 720), "⠏");
+  assert.equal(getStateIcon("RUN", 800), "⠋");
   assert.equal(getStateIcon("QUEUED"), "󰔟");
   assert.equal(getStateIcon("IDLE"), "󰒲");
   assert.equal(getStateIcon("STALE"), "󰅖");

@@ -7,22 +7,31 @@ export interface StateVisual {
   style: StyleFn;
 }
 
-const STATE_ICONS: Record<PiDashState, string> = {
+export const RUN_SPINNER_INTERVAL_MS = 80;
+
+const RUN_SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const;
+
+const STATE_ICONS: Record<Exclude<PiDashState, "RUN">, string> = {
   ASK: "",
   ERROR: "",
   DONE: "",
-  RUN: "",
   QUEUED: "󰔟",
   IDLE: "󰒲",
   STALE: "󰅖",
 };
 
-export function getStateIcon(state: PiDashState): string {
+export function getStateIcon(state: PiDashState, now = 0): string {
+  if (state === "RUN") return getRunSpinnerFrame(now);
   return STATE_ICONS[state];
 }
 
-export function getStateVisual(state: PiDashState, theme: DashboardTheme): StateVisual {
-  return { icon: getStateIcon(state), label: state, style: getStateStyle(state, theme) };
+export function getStateVisual(state: PiDashState, theme: DashboardTheme, now = 0): StateVisual {
+  return { icon: getStateIcon(state, now), label: state, style: getStateStyle(state, theme) };
+}
+
+function getRunSpinnerFrame(now: number): string {
+  const index = Math.floor(now / RUN_SPINNER_INTERVAL_MS) % RUN_SPINNER_FRAMES.length;
+  return RUN_SPINNER_FRAMES[index] ?? RUN_SPINNER_FRAMES[0];
 }
 
 function getStateStyle(state: PiDashState, theme: DashboardTheme): StyleFn {

@@ -8,6 +8,7 @@ import { dismissAllRead, dismissStatus, markRead } from "../state/write-status.j
 import { focusPane } from "../tmux/focus.js";
 import { listTmuxPanes } from "../tmux/list-panes.js";
 import { DashboardComponent, type DashboardActions } from "./dashboard-component.js";
+import { RUN_SPINNER_INTERVAL_MS } from "./dashboard-icons.js";
 import { buildDashboardRows } from "./rows.js";
 
 export interface DashboardOptions {
@@ -32,6 +33,7 @@ interface DashboardRuntime {
   quitOnSelect: boolean;
   refreshTimer: NodeJS.Timeout;
   presenceTimer: NodeJS.Timeout;
+  animationTimer: NodeJS.Timeout;
   cleaned: boolean;
 }
 
@@ -57,6 +59,7 @@ export function runDashboard(options: DashboardOptions = {}): void {
     quitOnSelect: options.quitOnSelect ?? false,
     refreshTimer: setInterval(() => refresh(runtime, true), 1_000),
     presenceTimer: setInterval(() => writeDashboardPresence(db, presenceId, process.env.TMUX_PANE ?? null), config.dashboardPresenceIntervalMs),
+    animationTimer: setInterval(() => renderAnimationFrame(runtime), RUN_SPINNER_INTERVAL_MS),
     cleaned: false,
   };
 
@@ -90,6 +93,7 @@ function cleanup(runtime: DashboardRuntime): void {
   runtime.cleaned = true;
   clearInterval(runtime.refreshTimer);
   clearInterval(runtime.presenceTimer);
+  clearInterval(runtime.animationTimer);
   removeDashboardPresence(runtime.db, runtime.presenceId);
   runtime.tui.stop();
   runtime.db.close();
@@ -105,6 +109,12 @@ function refresh(runtime: DashboardRuntime, beep: boolean): void {
 
 function render(runtime: DashboardRuntime): void {
   runtime.component.setSnapshot({ rows: runtime.state.rows, selected: runtime.state.selected, message: runtime.state.message });
+  runtime.tui.requestRender();
+}
+
+function renderAnimationFrame(runtime: DashboardRuntime): void {
+  if (!runtime.state.rows.some((row) => row.displayState === "RUN")) return;
+  runtime.component.invalidate();
   runtime.tui.requestRender();
 }
 
