@@ -135,7 +135,8 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
   const text = toRowText(row, now);
   const visual = getStateVisual(row.displayState, theme, now);
   const indicator = selected ? theme.accent("❯") : " ";
-  const state = `${indicator} ${visual.style(`${visual.icon} ${visual.label}`)}`;
+  const unreadMarker = row.unread ? ` ${theme.warning("●")}` : "";
+  const state = `${indicator} ${visual.style(`${visual.icon} ${visual.label}`)}${unreadMarker}`;
   const summaryStyle = row.unread && row.actionable ? theme.bright : theme.text;
   const innerWidth = Math.max(0, width);
   const columns = mode === "wide"
@@ -145,7 +146,7 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
       : innerWidth >= 46
         ? { session: 12, project: 18, age: 0 }
         : { session: 10, project: 14, age: 0 };
-  const statusWidth = 11;
+  const statusWidth = 12;
   const fixedWidth = statusWidth + columns.session + columns.project + columns.age;
   const separatorWidth = [statusWidth, columns.session, columns.project, columns.age].filter((value) => value > 0).length - 1;
   const summaryWidth = Math.max(0, innerWidth - fixedWidth - separatorWidth);
@@ -180,7 +181,7 @@ function renderStatusSection(rows: DashboardRow[], mode: DashboardLayoutMode, wi
 
 function renderStats(rows: DashboardRow[], mode: DashboardLayoutMode, theme: DashboardTheme): string {
   const actionable = rows.filter((row) => row.actionable).length;
-  const unread = rows.filter((row) => row.actionable && row.unread && !row.dismissed).length;
+  const unread = rows.filter((row) => row.unread && !row.dismissed).length;
   const stale = rows.filter((row) => row.displayState === "STALE").length;
   const layout = mode === "wide" ? "wide table" : mode === "medium" ? "compact table" : "small table";
   return ` ${theme.warning("●")} ${unread} unread  ${theme.accent("◆")} ${actionable} actionable  ${theme.stale("󰅖")} ${stale} stale  ${theme.muted(layout)}`;

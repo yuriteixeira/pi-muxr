@@ -65,8 +65,8 @@ export function isActionableStatus(status: Pick<PiDashStatus, "state" | "lastEve
   return actionableStates.includes(status.state) && !isDismissedForCurrentEvent(status);
 }
 
-export function isUnreadStatus(status: Pick<PiDashStatus, "state" | "lastEventAt" | "readUntilEventAt" | "dismissedUntilEventAt">, actionableStates = DEFAULT_ACTIONABLE_STATES): boolean {
-  return isActionableStatus(status, actionableStates) && (status.readUntilEventAt ?? 0) < status.lastEventAt;
+export function isUnreadStatus(status: Pick<PiDashStatus, "lastEventAt" | "readUntilEventAt" | "dismissedUntilEventAt">): boolean {
+  return !isDismissedForCurrentEvent(status) && (status.readUntilEventAt ?? 0) < status.lastEventAt;
 }
 
 export function isDismissedForCurrentEvent(status: Pick<PiDashStatus, "lastEventAt" | "dismissedUntilEventAt">): boolean {

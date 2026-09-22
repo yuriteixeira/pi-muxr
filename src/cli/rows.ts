@@ -24,6 +24,6 @@ function toDashboardRow(status: PiDashStatus, panesById: Map<string, TmuxPane>, 
     staleReason,
     dismissed: isDismissedForCurrentEvent(status),
     actionable: displayState === status.state && isActionableStatus(currentStatus, config.actionableStates),
-    unread: displayState === status.state && isUnreadStatus(currentStatus, config.actionableStates),
+    unread: displayState === status.state && isUnreadStatus(currentStatus),
   };
 }
