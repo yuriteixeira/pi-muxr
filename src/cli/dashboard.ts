@@ -18,7 +18,6 @@ export interface DashboardOptions {
 interface DashboardState {
   rows: DashboardRow[];
   selected: number;
-  seenEvents: Set<string>;
   message: string | null;
 }
 
@@ -41,7 +40,7 @@ export function runDashboard(options: DashboardOptions = {}): void {
   const config = loadConfig();
   const db = openDatabase(config.databasePath);
   const presenceId = createPresenceId();
-  const state: DashboardState = { rows: [], selected: 0, seenEvents: new Set(), message: null };
+  const state: DashboardState = { rows: [], selected: 0, message: null };
   const terminal = new ProcessTerminal();
   const tui = new TuiAltScreen(terminal);
   let runtime: DashboardRuntime;
@@ -57,7 +56,7 @@ export function runDashboard(options: DashboardOptions = {}): void {
     tui,
     component,
     quitOnSelect: options.quitOnSelect ?? false,
-    refreshTimer: setInterval(() => refresh(runtime, true), 1_000),
+    refreshTimer: setInterval(() => refresh(runtime), 1_000),
     presenceTimer: setInterval(() => writeDashboardPresence(db, presenceId, process.env.TMUX_PANE ?? null), config.dashboardPresenceIntervalMs),
     animationTimer: setInterval(() => renderAnimationFrame(runtime), RUN_SPINNER_INTERVAL_MS),
     cleaned: false,
@@ -66,7 +65,7 @@ export function runDashboard(options: DashboardOptions = {}): void {
   tui.addChild(component);
   tui.setFocus(component);
   writeDashboardPresence(db, presenceId, process.env.TMUX_PANE ?? null);
-  refresh(runtime, false);
+  refresh(runtime);
   tui.start();
 
   const cleanupHandler = () => cleanup(runtime);
@@ -99,11 +98,9 @@ function cleanup(runtime: DashboardRuntime): void {
   runtime.db.close();
 }
 
-function refresh(runtime: DashboardRuntime, beep: boolean): void {
+function refresh(runtime: DashboardRuntime): void {
   runtime.state.rows = buildDashboardRows(readStatuses(runtime.db), listTmuxPanes(), runtime.config);
   clampSelection(runtime.state);
-  if (beep && runtime.config.dashboardBell) beepForNewEvents(runtime);
-  else rememberCurrentActionableEvents(runtime.state);
   render(runtime);
 }
 
@@ -139,19 +136,19 @@ function selectLast(runtime: DashboardRuntime): void {
 
 function refreshFromInput(runtime: DashboardRuntime): void {
   runtime.state.message = null;
-  refresh(runtime, false);
+  refresh(runtime);
 }
 
 function dismissSelectedFromInput(runtime: DashboardRuntime): void {
   runtime.state.message = null;
   dismissSelected(runtime.db, runtime.state);
-  refresh(runtime, false);
+  refresh(runtime);
 }
 
 function dismissAllReadFromInput(runtime: DashboardRuntime): void {
   runtime.state.message = null;
   dismissAllRead(runtime.db, runtime.config.actionableStates);
-  refresh(runtime, false);
+  refresh(runtime);
 }
 
 function focusSelectedFromInput(runtime: DashboardRuntime): void {
@@ -161,7 +158,7 @@ function focusSelectedFromInput(runtime: DashboardRuntime): void {
     quit(runtime);
     return;
   }
-  refresh(runtime, false);
+  refresh(runtime);
 }
 
 function quit(runtime: DashboardRuntime): void {
@@ -171,26 +168,6 @@ function quit(runtime: DashboardRuntime): void {
 
 function clampSelection(state: DashboardState): void {
   state.selected = Math.min(state.selected, Math.max(0, state.rows.length - 1));
-}
-
-function beepForNewEvents(runtime: DashboardRuntime): void {
-  for (const row of runtime.state.rows) {
-    const key = eventKey(row);
-    if (row.actionable && row.unread && !row.dismissed && !runtime.state.seenEvents.has(key)) {
-      runtime.terminal.write("\x07");
-      runtime.state.seenEvents.add(key);
-    }
-  }
-}
-
-function rememberCurrentActionableEvents(state: DashboardState): void {
-  for (const row of state.rows) {
-    if (row.actionable && !row.dismissed) state.seenEvents.add(eventKey(row));
-  }
-}
-
-function eventKey(row: DashboardRow): string {
-  return `${row.id}:${row.lastEventAt}`;
 }
 
 function dismissSelected(db: Database, state: DashboardState): void {

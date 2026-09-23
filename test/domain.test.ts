@@ -18,6 +18,7 @@ import { chooseDashboardLayout } from "../src/cli/dashboard-layout.ts";
 import { DEFAULT_DASHBOARD_THEME } from "../src/cli/dashboard-theme.ts";
 import { buildDashboardRows } from "../src/cli/rows.ts";
 import { formatToolName, resolveAgentEndStatus, summarizeAskUserRequest, summarizeAskUserResult, summarizeToolCall } from "../src/extension/pi-muxr.ts";
+import { shouldRingTerminalBell } from "../src/notifications/terminal.ts";
 
 test("actionable/read/dismissed calculation", () => {
   const status = { state: "DONE", lastEventAt: 10 } as const;
@@ -136,6 +137,13 @@ test("extension reports ERROR for failed final agent message", () => {
   ] }, null);
 
   assert.deepEqual(status, { state: "ERROR", severity: "high", summary: "provider failed" });
+});
+
+test("terminal bell rings for a new actionable state", () => {
+  assert.equal(shouldRingTerminalBell(DEFAULT_CONFIG, "ASK", "RUN"), true);
+  assert.equal(shouldRingTerminalBell(DEFAULT_CONFIG, "ASK", "ASK"), false);
+  assert.equal(shouldRingTerminalBell(DEFAULT_CONFIG, "RUN", "IDLE"), false);
+  assert.equal(shouldRingTerminalBell({ ...DEFAULT_CONFIG, dashboardBell: false }, "DONE", "RUN"), false);
 });
 
 test("modern dashboard maps states to status icons", () => {

@@ -2,6 +2,7 @@ import { loadConfig } from "../config/config.js";
 import type { DashboardConfig, PiMuxrState, PiMuxrStatus, TmuxPane } from "../domain/status.js";
 import { DEFAULT_ACTIONABLE_STATES } from "../domain/status.js";
 import { notifyStatus } from "../notifications/desktop.js";
+import { ringTerminalBell, shouldRingTerminalBell } from "../notifications/terminal.js";
 import { openDatabase, type Database } from "../state/database.js";
 import { hasFreshDashboardPresence } from "../state/dashboard-presence.js";
 import { markNotified, removeStatus, updateHeartbeat, upsertStatus } from "../state/write-status.js";
@@ -156,6 +157,7 @@ function writeState(runtime: RuntimeState, ctx: any, state: PiMuxrState, severit
   const status = baseStatus(runtime, ctx, pane, state, severity, summary, now, true);
   const notificationSnapshot = readNotificationSnapshot(runtime.db, status.id);
   upsertStatus(runtime.db, status);
+  maybeRingBell(runtime, status, notificationSnapshot);
   maybeNotify(runtime, status, notificationSnapshot);
 }
 
@@ -176,6 +178,10 @@ function baseStatus(runtime: RuntimeState, ctx: any, pane: TmuxPane | null, stat
     lastEventAt: event ? now : now,
     heartbeatAt: now,
   };
+}
+
+function maybeRingBell(runtime: RuntimeState, status: PiMuxrStatus, snapshot: NotificationSnapshot | null): void {
+  if (shouldRingTerminalBell(runtime.config, status.state, snapshot?.state ?? null)) ringTerminalBell();
 }
 
 function maybeNotify(runtime: RuntimeState, status: PiMuxrStatus, snapshot: NotificationSnapshot | null): void {

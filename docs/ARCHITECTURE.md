@@ -16,6 +16,7 @@ The project does not read terminal output. A Pi extension receives Pi events and
 Pi session
     |
     | Pi extension events
+    +--> terminal bell in the Pi pane
     v
 SQLite database: ~/.pi-muxr/pi-muxr.sqlite
     |
@@ -23,7 +24,6 @@ SQLite database: ~/.pi-muxr/pi-muxr.sqlite
     |       |
     |       +--> terminal input and display
     |       +--> tmux pane focus
-    |       +--> terminal bell
     |
     +--> Web terminal gateway
     |       |
@@ -88,7 +88,7 @@ The domain supports these states:
 | `IDLE` | The session is alive but not active. |
 | `STALE` | Internal display classification for an expired heartbeat or a missing tmux pane. |
 
-By default, `ASK`, `ERROR`, and `DONE` are actionable. The configuration can change the actionable states used by the dashboard, dashboard bell, dismissal actions, and browser notifications. Desktop notifications always use the default actionable states.
+By default, `ASK`, `ERROR`, and `DONE` are actionable. The configuration can change the actionable states used by the dashboard, terminal bell, dismissal actions, and browser notifications. Desktop notifications always use the default actionable states.
 
 An event is unread when its `last_event_at` is newer than `read_until_event_at` and it has not been dismissed. Unread and actionable are separate properties. The dashboard can therefore show an unread marker for a state that is not actionable. An event is dismissed when `dismissed_until_event_at` is at least as recent as `last_event_at`. This means a new event becomes visible again after an older event was read or dismissed.
 
@@ -124,7 +124,7 @@ session_shutdown
     -> close database
 ```
 
-The extension also refreshes tmux information when it writes a state update. It uses `TMUX_PANE` and tmux pane discovery to associate a Pi process with its owning pane.
+The extension also refreshes tmux information when it writes a state update. It uses `TMUX_PANE` and tmux pane discovery to associate a Pi process with its owning pane. When the process enters a configured actionable state, the extension emits one terminal bell. Because the bell comes from the Pi process, tmux assigns the alert to the window that owns the Pi pane.
 
 Summaries are truncated before storage. This keeps the database small and limits the amount of event data retained for display.
 
@@ -163,7 +163,7 @@ load configuration
     -> render dashboard
 ```
 
-The dashboard refreshes once per second. It keeps the selected row, tracks events already seen during the current run, and emits a terminal bell for new unread actionable events.
+The dashboard refreshes once per second and keeps the selected row. The Pi extension emits terminal bells, so the dashboard does not assign alerts to its own window.
 
 User actions update SQLite before they affect the display:
 
@@ -219,7 +219,7 @@ The web interface is a terminal view, not a second dashboard implementation. It 
 
 ## Notifications
 
-The dashboard bell and browser notifications use the configured actionable states. Desktop notifications use the fixed default states: `ASK`, `ERROR`, and `DONE`.
+The terminal bell and browser notifications use the configured actionable states. Desktop notifications use the fixed default states: `ASK`, `ERROR`, and `DONE`.
 
 Desktop notification flow:
 
@@ -234,7 +234,7 @@ extension state update
 
 The extension avoids repeated desktop notifications for the same state. When configured, a fresh dashboard presence suppresses desktop notifications because the user can already see the event.
 
-The interactive CLI uses a separate in process event set for its terminal bell. The browser gateway polls notification state and sends browser messages for new unread actionable rows. Both paths use the configured actionable states.
+The Pi extension emits the terminal bell when a session enters a new actionable state. It compares the new state with the stored state to avoid a repeated bell. The browser gateway polls notification state and sends browser messages for new unread actionable rows.
 
 ## Configuration boundary
 
@@ -243,9 +243,9 @@ Configuration is loaded from `~/.pi-muxr/config.json`. If the file does not exis
 Configuration controls:
 
 - Database and state paths.
-- Actionable states for the dashboard, dashboard bell, dismissal actions, and browser notifications.
+- Actionable states for the dashboard, terminal bell, dismissal actions, and browser notifications.
 - Desktop notification behavior for the fixed `ASK`, `ERROR`, and `DONE` states.
-- Dashboard bell behavior.
+- Terminal bell behavior.
 - Whether dismissed rows are shown.
 - Stale and heartbeat timing.
 - Dashboard presence timing.
