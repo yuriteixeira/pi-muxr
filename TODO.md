@@ -1,1 +1,3 @@
-- [ ] daemon that will received notification's click and activate the right tmux pane
+- [ ] feat: daemon that will received notification's click and activate the right tmux pane
+- [ ] chore: focused tests (being siblings with the module they are testing)
+- [ ] refactor: review sidebar.ts (eg: can call `build*Command` functions directly instead of passing them as params)
