@@ -1,3 +1,4 @@
 - [ ] feat: daemon that will received notification's click and activate the right tmux pane
+- [ ] fix: "no pi sessions" msg is misleading (since you can dismiss... maybe we should have a "dismissed" panel)
 - [ ] chore: focused tests (being siblings with the module they are testing)
 - [ ] refactor: review sidebar.ts (eg: can call `build*Command` functions directly instead of passing them as params)
