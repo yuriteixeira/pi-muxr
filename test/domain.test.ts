@@ -213,7 +213,7 @@ test("dashboard hides the status section when the terminal is too small", () => 
   assert.match(largeDashboard, /select.*focus/);
 });
 
-test("selected rows preserve the status color and show unread beside the status", () => {
+test("selected rows preserve the status color and show unread in its own column", () => {
   const status: PiMuxrStatus = { id: "1", paneId: null, tmuxSession: "main", tmuxWindow: null, tmuxWindowIndex: null, pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "DONE", severity: "medium", summary: "Done", lastEventAt: 1_000, heartbeatAt: 1_000 };
   const rows = buildDashboardRows([status], [], DEFAULT_CONFIG, 2_000);
   const readRows = buildDashboardRows([{ ...status, readUntilEventAt: 1_000 }], [], DEFAULT_CONFIG, 2_000);
@@ -221,8 +221,9 @@ test("selected rows preserve the status color and show unread beside the status"
   const unselectedLine = renderDashboardLines({ rows, selected: 1, message: null, width: 90, height: 11, now: 2_000 })[1]!;
   const readLine = renderDashboardLines({ rows: readRows, selected: 1, message: null, width: 90, height: 11, now: 2_000 })[1]!;
 
-  assert.match(selectedLine, /\x1b\[94m❯\x1b\[39m \x1b\[92m DONE\x1b\[39m \x1b\[93m●\x1b\[39m/);
-  assert.match(unselectedLine, / \x1b\[92m DONE\x1b\[39m \x1b\[93m●\x1b\[39m/);
+  assert.match(selectedLine, /\x1b\[94m❯\x1b\[39m \x1b\[92m DONE\x1b\[39m {5}\x1b\[93m●\x1b\[39m \x1b\[96mmain/);
+  assert.match(unselectedLine, /  \x1b\[92m DONE\x1b\[39m {5}\x1b\[93m●\x1b\[39m \x1b\[96mmain/);
+  assert.match(readLine, /  \x1b\[92m DONE\x1b\[39m {7}\x1b\[96mmain/);
   assert.doesNotMatch(readLine, /●/);
 });
 

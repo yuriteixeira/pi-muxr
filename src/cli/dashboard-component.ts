@@ -135,8 +135,8 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
   const text = toRowText(row, now);
   const visual = getStateVisual(row.displayState, theme, now);
   const indicator = selected ? theme.accent("❯") : " ";
-  const unreadMarker = row.unread ? ` ${theme.warning("●")}` : "";
-  const state = `${indicator} ${visual.style(`${visual.icon} ${visual.label}`)}${unreadMarker}`;
+  const unreadMarker = row.unread ? theme.warning("●") : "";
+  const state = `${indicator} ${visual.style(`${visual.icon} ${visual.label}`)}`;
   const summaryStyle = row.unread && row.actionable ? theme.bright : theme.text;
   const innerWidth = Math.max(0, width);
   const columns = mode === "wide"
@@ -147,11 +147,13 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
         ? { session: 12, project: 18, age: 0 }
         : { session: 10, project: 14, age: 0 };
   const statusWidth = 12;
-  const fixedWidth = statusWidth + columns.session + columns.project + columns.age;
-  const separatorWidth = [statusWidth, columns.session, columns.project, columns.age].filter((value) => value > 0).length - 1;
+  const unreadWidth = 1;
+  const fixedWidth = statusWidth + unreadWidth + columns.session + columns.project + columns.age;
+  const separatorWidth = [statusWidth, unreadWidth, columns.session, columns.project, columns.age].filter((value) => value > 0).length - 1;
   const summaryWidth = Math.max(0, innerWidth - fixedWidth - separatorWidth);
   const cells = [
     padCell(state, statusWidth),
+    padCell(unreadMarker, unreadWidth),
     padCell(theme.info(text.session), columns.session),
     padCell(theme.muted(fitPlainCellEnd(text.project, columns.project)), columns.project),
   ];
