@@ -34,7 +34,7 @@ SQLite database: ~/.pi-muxr/pi-muxr.sqlite
     +--> Desktop notifications
 ```
 
-SQLite is the shared boundary between the Pi extension and the user interfaces. It allows the extension and one or more dashboard processes to read and update state without a separate service.
+SQLite is the shared boundary between the Pi extension and the user interfaces. It allows the extension and one or more dashboard processes to read and update state without a separate service. Ordered migrations use SQLite `user_version` to update existing databases inside a transaction.
 
 ## Source layout
 

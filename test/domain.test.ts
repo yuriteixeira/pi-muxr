@@ -3,10 +3,12 @@ import test from "node:test";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { DEFAULT_CONFIG } from "../src/config/config.ts";
 import { isActionableStatus, isUnreadStatus, type PiMuxrStatus } from "../src/domain/status.ts";
 import { openDatabase } from "../src/state/database.ts";
+import { applyDatabaseMigrations } from "../src/state/migrations.ts";
 import { readStatuses } from "../src/state/read-statuses.ts";
 import { dismissAllRead, dismissStatus, markRead, upsertStatus } from "../src/state/write-status.ts";
 import { parseTmuxPanes } from "../src/tmux/list-panes.ts";
@@ -103,6 +105,21 @@ test("sqlite status markers", () => {
   assert.equal(dismissAllRead(db), 1);
   assert.equal(readStatuses(db)[0]?.dismissedUntilEventAt, 100);
   dismissStatus(db, "1", 100);
+  db.close();
+});
+
+test("database applies each ordered migration once", () => {
+  const db = new DatabaseSync(":memory:");
+  db.exec("CREATE TABLE migration_probe (id TEXT PRIMARY KEY)");
+  const migrations = [{ version: 1, apply: (database: DatabaseSync) => database.exec("ALTER TABLE migration_probe ADD COLUMN value TEXT") }];
+
+  applyDatabaseMigrations(db, migrations);
+  applyDatabaseMigrations(db, migrations);
+
+  const columns = db.prepare("PRAGMA table_info(migration_probe)").all() as Array<{ name: string }>;
+  const version = db.prepare("PRAGMA user_version").get() as { user_version: number };
+  assert.ok(columns.some((column) => column.name === "value"));
+  assert.equal(version.user_version, 1);
   db.close();
 });
 
