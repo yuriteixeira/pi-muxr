@@ -2,7 +2,12 @@ import type { DashboardConfig, DashboardRow, PiMuxrStatus, TmuxPane } from "../d
 import { isActionableStatus, isDismissedForCurrentEvent, isUnreadStatus } from "../domain/status.js";
 import { sortDashboardRows } from "../domain/sorting.js";
 
-export function buildDashboardRows(statuses: PiMuxrStatus[], panes: TmuxPane[], config: DashboardConfig, now = Date.now()): DashboardRow[] {
+export function buildDashboardRows(
+  statuses: PiMuxrStatus[],
+  panes: TmuxPane[],
+  config: DashboardConfig,
+  now = Date.now(),
+): DashboardRow[] {
   const panesById = new Map(panes.map((pane) => [pane.paneId, pane]));
   const rows = statuses.map((status) => toDashboardRow(status, panesById, config, now));
   return sortDashboardRows(rows)
@@ -10,8 +15,13 @@ export function buildDashboardRows(statuses: PiMuxrStatus[], panes: TmuxPane[], 
     .filter((row) => config.showDismissedRows || !row.dismissed);
 }
 
-function toDashboardRow(status: PiMuxrStatus, panesById: Map<string, TmuxPane>, config: DashboardConfig, now: number): DashboardRow {
-  const pane = status.paneId ? panesById.get(status.paneId) ?? null : null;
+function toDashboardRow(
+  status: PiMuxrStatus,
+  panesById: Map<string, TmuxPane>,
+  config: DashboardConfig,
+  now: number,
+): DashboardRow {
+  const pane = status.paneId ? (panesById.get(status.paneId) ?? null) : null;
   const missingPane = Boolean(status.paneId) && !pane;
   const oldHeartbeat = now - status.heartbeatAt > config.staleAfterMs;
   const displayState = oldHeartbeat || missingPane ? "STALE" : status.state;

@@ -61,7 +61,9 @@ export async function getBase16TerminalTheme(): Promise<TerminalTheme | null> {
     foreground: colors.color_foreground,
     background: colors.color_background,
     cursor: colors.color_foreground,
-    ...Object.fromEntries(XTERM_COLOR_NAMES.map((name, index) => [name, colors[`color${String(index).padStart(2, "0")}`]])),
+    ...Object.fromEntries(
+      XTERM_COLOR_NAMES.map((name, index) => [name, colors[`color${String(index).padStart(2, "0")}`]]),
+    ),
   } as TerminalTheme;
 }
 
@@ -78,7 +80,9 @@ function parseBase16Colors(script: string): ColorMap {
   const colors: ColorMap = {};
 
   for (const line of script.split("\n")) {
-    const match = line.match(/^(color(?:\d{2}|_foreground|_background))=(?:"([0-9a-fA-F]{2}\/[0-9a-fA-F]{2}\/[0-9a-fA-F]{2})"|\$(color\d{2}))/);
+    const match = line.match(
+      /^(color(?:\d{2}|_foreground|_background))=(?:"([0-9a-fA-F]{2}\/[0-9a-fA-F]{2}\/[0-9a-fA-F]{2})"|\$(color\d{2}))/,
+    );
     if (!match) continue;
 
     const [, name, literal, reference] = match;
@@ -94,5 +98,9 @@ function toHexColor(base16Color: string): string {
 }
 
 function hasRequiredColors(colors: ColorMap): boolean {
-  return Boolean(colors.color_foreground && colors.color_background && XTERM_COLOR_NAMES.every((_, index) => colors[`color${String(index).padStart(2, "0")}`]));
+  return Boolean(
+    colors.color_foreground &&
+    colors.color_background &&
+    XTERM_COLOR_NAMES.every((_, index) => colors[`color${String(index).padStart(2, "0")}`]),
+  );
 }

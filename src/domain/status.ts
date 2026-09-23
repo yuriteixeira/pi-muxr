@@ -62,15 +62,22 @@ export interface DashboardRow extends PiMuxrStatus {
 
 export const DEFAULT_ACTIONABLE_STATES: PiMuxrState[] = ["ASK", "ERROR", "DONE"];
 
-export function isActionableStatus(status: Pick<PiMuxrStatus, "state" | "lastEventAt" | "dismissedUntilEventAt">, actionableStates = DEFAULT_ACTIONABLE_STATES): boolean {
+export function isActionableStatus(
+  status: Pick<PiMuxrStatus, "state" | "lastEventAt" | "dismissedUntilEventAt">,
+  actionableStates = DEFAULT_ACTIONABLE_STATES,
+): boolean {
   return actionableStates.includes(status.state) && !isDismissedForCurrentEvent(status);
 }
 
-export function isUnreadStatus(status: Pick<PiMuxrStatus, "lastEventAt" | "readUntilEventAt" | "dismissedUntilEventAt">): boolean {
+export function isUnreadStatus(
+  status: Pick<PiMuxrStatus, "lastEventAt" | "readUntilEventAt" | "dismissedUntilEventAt">,
+): boolean {
   return !isDismissedForCurrentEvent(status) && (status.readUntilEventAt ?? 0) < status.lastEventAt;
 }
 
-export function isDismissedForCurrentEvent(status: Pick<PiMuxrStatus, "lastEventAt" | "dismissedUntilEventAt">): boolean {
+export function isDismissedForCurrentEvent(
+  status: Pick<PiMuxrStatus, "lastEventAt" | "dismissedUntilEventAt">,
+): boolean {
   return (status.dismissedUntilEventAt ?? 0) >= status.lastEventAt;
 }
 

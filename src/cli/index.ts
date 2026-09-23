@@ -3,7 +3,14 @@ import { loadConfig } from "../config/config.js";
 import { openDatabase } from "../state/database.js";
 import { readStatuses } from "../state/read-statuses.js";
 import { listTmuxPanes } from "../tmux/list-panes.js";
-import { cleanupOrphanedSidebar, ensurePinnedSidebar, parseSidebarCleanupWindowTarget, parseSidebarSide, parseSidebarWindowTarget, toggleSidebar } from "../tmux/sidebar.js";
+import {
+  cleanupOrphanedSidebar,
+  ensurePinnedSidebar,
+  parseSidebarCleanupWindowTarget,
+  parseSidebarSide,
+  parseSidebarWindowTarget,
+  toggleSidebar,
+} from "../tmux/sidebar.js";
 import { renderRows } from "./format.js";
 import { buildDashboardRows } from "./rows.js";
 import { runWebServer } from "../web/server.js";
@@ -28,8 +35,14 @@ Web: set HOST/PORT to change the bind address (defaults to 127.0.0.1:3042).
 `;
 
 function main(argv: string[]): void {
-  if (argv.includes("--help") || argv.includes("-h")) { console.log(HELP); return; }
-  if (argv.includes("--version")) { console.log(VERSION); return; }
+  if (argv.includes("--help") || argv.includes("-h")) {
+    console.log(HELP);
+    return;
+  }
+  if (argv.includes("--version")) {
+    console.log(VERSION);
+    return;
+  }
 
   try {
     const sidebarCleanupWindowTarget = parseSidebarCleanupWindowTarget(argv);
@@ -56,12 +69,21 @@ function main(argv: string[]): void {
   }
 
   const config = loadConfig();
-  if (argv.includes("--config")) { console.log(JSON.stringify(config, null, 2)); return; }
-  if (argv.includes("--web")) { runWebServer(); return; }
+  if (argv.includes("--config")) {
+    console.log(JSON.stringify(config, null, 2));
+    return;
+  }
+  if (argv.includes("--web")) {
+    runWebServer();
+    return;
+  }
   if (argv.includes("--list")) {
     const db = openDatabase(config.databasePath);
-    try { console.log(renderRows(buildDashboardRows(readStatuses(db), listTmuxPanes(), config))); }
-    finally { db.close(); }
+    try {
+      console.log(renderRows(buildDashboardRows(readStatuses(db), listTmuxPanes(), config)));
+    } finally {
+      db.close();
+    }
     return;
   }
   runDashboard({ quitOnSelect: argv.includes("--quit-on-select") });

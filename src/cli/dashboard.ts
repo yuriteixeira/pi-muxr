@@ -57,7 +57,10 @@ export function runDashboard(options: DashboardOptions = {}): void {
     component,
     quitOnSelect: options.quitOnSelect ?? false,
     refreshTimer: setInterval(() => refresh(runtime), 1_000),
-    presenceTimer: setInterval(() => writeDashboardPresence(db, presenceId, process.env.TMUX_PANE ?? null), config.dashboardPresenceIntervalMs),
+    presenceTimer: setInterval(
+      () => writeDashboardPresence(db, presenceId, process.env.TMUX_PANE ?? null),
+      config.dashboardPresenceIntervalMs,
+    ),
     animationTimer: setInterval(() => renderAnimationFrame(runtime), RUN_SPINNER_INTERVAL_MS),
     cleaned: false,
   };
@@ -69,7 +72,10 @@ export function runDashboard(options: DashboardOptions = {}): void {
   tui.start();
 
   const cleanupHandler = () => cleanup(runtime);
-  const sigintHandler = () => { cleanup(runtime); process.exit(0); };
+  const sigintHandler = () => {
+    cleanup(runtime);
+    process.exit(0);
+  };
   process.on("exit", cleanupHandler);
   process.on("SIGINT", sigintHandler);
 }
@@ -105,7 +111,11 @@ function refresh(runtime: DashboardRuntime): void {
 }
 
 function render(runtime: DashboardRuntime): void {
-  runtime.component.setSnapshot({ rows: runtime.state.rows, selected: runtime.state.selected, message: runtime.state.message });
+  runtime.component.setSnapshot({
+    rows: runtime.state.rows,
+    selected: runtime.state.selected,
+    message: runtime.state.message,
+  });
   runtime.tui.requestRender();
 }
 

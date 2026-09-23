@@ -10,11 +10,19 @@ export function notifyStatus(status: PiMuxrStatus): void {
 
 function tryNotify(title: string, body: string): void {
   if (process.platform === "darwin") {
-    try { execFileSync("osascript", ["-e", `display notification ${JSON.stringify(body)} with title ${JSON.stringify(title)}`], { stdio: "ignore" }); } catch {}
+    try {
+      execFileSync(
+        "osascript",
+        ["-e", `display notification ${JSON.stringify(body)} with title ${JSON.stringify(title)}`],
+        { stdio: "ignore" },
+      );
+    } catch {}
     return;
   }
   if (process.platform === "linux") {
-    try { execFileSync("notify-send", [title, body], { stdio: "ignore" }); } catch {}
+    try {
+      execFileSync("notify-send", [title, body], { stdio: "ignore" });
+    } catch {}
   }
 }
 

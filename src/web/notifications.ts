@@ -22,13 +22,20 @@ function pollNotifications(db: Database, config: DashboardConfig, seen: Set<stri
     const key = eventKey(row);
     if (seen.has(key)) continue;
     seen.add(key);
-    messages.push({ type: "notification", title: notificationTitle(row), body: row.summary, row: notificationRow(row) });
+    messages.push({
+      type: "notification",
+      title: notificationTitle(row),
+      body: row.summary,
+      row: notificationRow(row),
+    });
   }
   return messages;
 }
 
 function readActionableRows(db: Database, config: DashboardConfig): DashboardRow[] {
-  return buildDashboardRows(readStatuses(db), listTmuxPanes(), config).filter((row) => row.actionable && row.unread && !row.dismissed);
+  return buildDashboardRows(readStatuses(db), listTmuxPanes(), config).filter(
+    (row) => row.actionable && row.unread && !row.dismissed,
+  );
 }
 
 function seedSeenEvents(seen: Set<string>, rows: DashboardRow[]): void {

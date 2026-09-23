@@ -12,14 +12,32 @@ import { applyDatabaseMigrations } from "../src/state/migrations.ts";
 import { readStatuses } from "../src/state/read-statuses.ts";
 import { dismissAllRead, dismissStatus, markRead, upsertStatus } from "../src/state/write-status.ts";
 import { parseTmuxPanes } from "../src/tmux/list-panes.ts";
-import { buildPiMuxrCommand, buildSidebarCleanupHookCommand, buildSidebarHookArgs, buildSidebarHookCommand, buildSidebarSplitArgs, buildSidebarUnhookArgs, parseSidebarCleanupWindowTarget, parseSidebarPaneInventory, parseSidebarSide, parseSidebarWindowTarget } from "../src/tmux/sidebar.ts";
+import {
+  buildPiMuxrCommand,
+  buildSidebarCleanupHookCommand,
+  buildSidebarHookArgs,
+  buildSidebarHookCommand,
+  buildSidebarSplitArgs,
+  buildSidebarUnhookArgs,
+  parseSidebarCleanupWindowTarget,
+  parseSidebarPaneInventory,
+  parseSidebarSide,
+  parseSidebarWindowTarget,
+} from "../src/tmux/sidebar.ts";
 import { renderDashboardLines } from "../src/cli/dashboard-component.ts";
 import { getStateIcon } from "../src/cli/dashboard-icons.ts";
 import { renderRows } from "../src/cli/format.ts";
 import { chooseDashboardLayout } from "../src/cli/dashboard-layout.ts";
 import { DEFAULT_DASHBOARD_THEME } from "../src/cli/dashboard-theme.ts";
 import { buildDashboardRows } from "../src/cli/rows.ts";
-import { formatToolName, normalizePrompt, resolveAgentEndStatus, summarizeAskUserRequest, summarizeAskUserResult, summarizeToolCall } from "../src/extension/pi-muxr.ts";
+import {
+  formatToolName,
+  normalizePrompt,
+  resolveAgentEndStatus,
+  summarizeAskUserRequest,
+  summarizeAskUserResult,
+  summarizeToolCall,
+} from "../src/extension/pi-muxr.ts";
 import { shouldRingTerminalBell } from "../src/notifications/terminal.ts";
 import { VERSION } from "../src/version.ts";
 
@@ -35,7 +53,16 @@ test("actionable/read/dismissed calculation", () => {
 
 test("tmux parser", () => {
   const panes = parseTmuxPanes("work\t1\tapi\t%14\t1\tbash\ttitle\t123\n");
-  assert.deepEqual(panes[0], { sessionName: "work", windowIndex: "1", windowName: "api", paneId: "%14", paneActive: true, currentCommand: "bash", paneTitle: "title", panePid: 123 });
+  assert.deepEqual(panes[0], {
+    sessionName: "work",
+    windowIndex: "1",
+    windowName: "api",
+    paneId: "%14",
+    paneActive: true,
+    currentCommand: "bash",
+    paneTitle: "title",
+    panePid: 123,
+  });
 });
 
 test("sidebar option defaults to right and accepts an explicit side", () => {
@@ -53,7 +80,10 @@ test("sidebar window targets accept tmux window IDs", () => {
   assert.equal(parseSidebarCleanupWindowTarget(["--sidebar-cleanup-window", "@12"]), "@12");
   assert.throws(() => parseSidebarWindowTarget(["--sidebar-window"]), /requires a tmux window ID/);
   assert.throws(() => parseSidebarWindowTarget(["--sidebar-window", "work:1"]), /requires a tmux window ID/);
-  assert.throws(() => parseSidebarCleanupWindowTarget(["--sidebar-cleanup-window", "work:1"]), /requires a tmux window ID/);
+  assert.throws(
+    () => parseSidebarCleanupWindowTarget(["--sidebar-cleanup-window", "work:1"]),
+    /requires a tmux window ID/,
+  );
 });
 
 test("sidebar pane parser finds marked panes and one non sidebar target per window", () => {
@@ -72,9 +102,39 @@ test("sidebar split places a full height pane with at most 25 percent width", ()
   const right = buildSidebarSplitArgs("right", "%1", "pi-muxr");
   const left = buildSidebarSplitArgs("left", "%1", "pi-muxr");
 
-  assert.deepEqual(right, ["split-window", "-d", "-f", "-h", "-l", "25%", "-t", "%1", "-P", "-F", "#{pane_id}", "pi-muxr"]);
-  assert.deepEqual(left, ["split-window", "-d", "-f", "-h", "-l", "25%", "-b", "-t", "%1", "-P", "-F", "#{pane_id}", "pi-muxr"]);
-  assert.equal(buildPiMuxrCommand("/opt/node bin/node", "/tmp/pi-muxr's/index.js"), "'/opt/node bin/node' '/tmp/pi-muxr'\\''s/index.js'");
+  assert.deepEqual(right, [
+    "split-window",
+    "-d",
+    "-f",
+    "-h",
+    "-l",
+    "25%",
+    "-t",
+    "%1",
+    "-P",
+    "-F",
+    "#{pane_id}",
+    "pi-muxr",
+  ]);
+  assert.deepEqual(left, [
+    "split-window",
+    "-d",
+    "-f",
+    "-h",
+    "-l",
+    "25%",
+    "-b",
+    "-t",
+    "%1",
+    "-P",
+    "-F",
+    "#{pane_id}",
+    "pi-muxr",
+  ]);
+  assert.equal(
+    buildPiMuxrCommand("/opt/node bin/node", "/tmp/pi-muxr's/index.js"),
+    "'/opt/node bin/node' '/tmp/pi-muxr'\\''s/index.js'",
+  );
   const hookCommand = buildSidebarHookCommand("/opt/node bin/node", "/tmp/pi-muxr/index.js");
   const cleanupHookCommand = buildSidebarCleanupHookCommand("/opt/node bin/node", "/tmp/pi-muxr/index.js");
   assert.equal(
@@ -99,7 +159,23 @@ test("sidebar split places a full height pane with at most 25 percent width", ()
 
 test("sqlite status markers", () => {
   const db = openDatabase(join(mkdtempSync(join(tmpdir(), "pi-muxr-")), "db.sqlite"));
-  const status: PiMuxrStatus = { id: "1", paneId: "%1", tmuxSession: "s", tmuxWindow: "w", tmuxWindowIndex: "0", pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "DONE", severity: "medium", summary: "done", lastPrompt: "x".repeat(130), lastEventAt: 100, heartbeatAt: 100 };
+  const status: PiMuxrStatus = {
+    id: "1",
+    paneId: "%1",
+    tmuxSession: "s",
+    tmuxWindow: "w",
+    tmuxWindowIndex: "0",
+    pid: 1,
+    cwd: "/tmp/project",
+    piSessionFile: null,
+    model: null,
+    state: "DONE",
+    severity: "medium",
+    summary: "done",
+    lastPrompt: "x".repeat(130),
+    lastEventAt: 100,
+    heartbeatAt: 100,
+  };
   upsertStatus(db, status);
   markRead(db, "1", 100);
   assert.equal(readStatuses(db)[0]?.lastPrompt, `${"x".repeat(119)}…`);
@@ -113,7 +189,12 @@ test("sqlite status markers", () => {
 test("database applies each ordered migration once", () => {
   const db = new DatabaseSync(":memory:");
   db.exec("CREATE TABLE migration_probe (id TEXT PRIMARY KEY)");
-  const migrations = [{ version: 1, apply: (database: DatabaseSync) => database.exec("ALTER TABLE migration_probe ADD COLUMN value TEXT") }];
+  const migrations = [
+    {
+      version: 1,
+      apply: (database: DatabaseSync) => database.exec("ALTER TABLE migration_probe ADD COLUMN value TEXT"),
+    },
+  ];
 
   applyDatabaseMigrations(db, migrations);
   applyDatabaseMigrations(db, migrations);
@@ -141,7 +222,23 @@ test("last prompt migration updates an existing sessions table", () => {
 
 test("dismiss all read honors configured actionable states", () => {
   const db = openDatabase(join(mkdtempSync(join(tmpdir(), "pi-muxr-")), "db.sqlite"));
-  const status: PiMuxrStatus = { id: "1", paneId: "%1", tmuxSession: "s", tmuxWindow: "w", tmuxWindowIndex: "0", pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "RUN", severity: "low", summary: "run", lastEventAt: 100, heartbeatAt: 100, readUntilEventAt: 100 };
+  const status: PiMuxrStatus = {
+    id: "1",
+    paneId: "%1",
+    tmuxSession: "s",
+    tmuxWindow: "w",
+    tmuxWindowIndex: "0",
+    pid: 1,
+    cwd: "/tmp/project",
+    piSessionFile: null,
+    model: null,
+    state: "RUN",
+    severity: "low",
+    summary: "run",
+    lastEventAt: 100,
+    heartbeatAt: 100,
+    readUntilEventAt: 100,
+  };
   upsertStatus(db, status);
   assert.equal(dismissAllRead(db), 0);
   assert.equal(dismissAllRead(db, ["RUN"]), 1);
@@ -150,11 +247,31 @@ test("dismiss all read honors configured actionable states", () => {
 });
 
 test("dashboard rows only include active sessions and hide dismissed rows", () => {
-  const status: PiMuxrStatus = { id: "1", paneId: "%missing", tmuxSession: null, tmuxWindow: null, tmuxWindowIndex: null, pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "DONE", severity: "medium", summary: "done", lastEventAt: 100, heartbeatAt: 100 };
+  const status: PiMuxrStatus = {
+    id: "1",
+    paneId: "%missing",
+    tmuxSession: null,
+    tmuxWindow: null,
+    tmuxWindowIndex: null,
+    pid: 1,
+    cwd: "/tmp/project",
+    piSessionFile: null,
+    model: null,
+    state: "DONE",
+    severity: "medium",
+    summary: "done",
+    lastEventAt: 100,
+    heartbeatAt: 100,
+  };
   const rows = buildDashboardRows([status], [], { ...DEFAULT_CONFIG, showDismissedRows: false }, 100_000);
   assert.equal(rows.length, 0);
 
-  const dismissedRows = buildDashboardRows([{ ...status, dismissedUntilEventAt: 100 }], [], { ...DEFAULT_CONFIG, showDismissedRows: false }, 100_000);
+  const dismissedRows = buildDashboardRows(
+    [{ ...status, dismissedUntilEventAt: 100 }],
+    [],
+    { ...DEFAULT_CONFIG, showDismissedRows: false },
+    100_000,
+  );
   assert.equal(dismissedRows.length, 0);
 });
 
@@ -165,7 +282,10 @@ test("extension wraps tool names in square brackets without a trailing colon", (
   assert.equal(summarizeAskUserRequest({ question: "Continue?" }), "[ask_user] Continue?");
   assert.equal(summarizeAskUserRequest({}), "[ask_user] waiting for input");
   assert.equal(summarizeAskUserResult({ details: { cancelled: true } }), "[ask_user] cancelled");
-  assert.equal(summarizeAskUserResult({ details: { response: { kind: "selection", selections: ["Yes"] } } }), "[ask_user] answered: Yes");
+  assert.equal(
+    summarizeAskUserResult({ details: { response: { kind: "selection", selections: ["Yes"] } } }),
+    "[ask_user] answered: Yes",
+  );
 });
 
 test("extension normalizes a multiline user prompt for one table cell", () => {
@@ -174,18 +294,24 @@ test("extension normalizes a multiline user prompt for one table cell", () => {
 });
 
 test("extension reports DONE when agent recovered from a tool error", () => {
-  const status = resolveAgentEndStatus({ messages: [
-    { role: "toolResult", toolName: "bash", isError: true, content: [{ type: "text", text: "exit 1" }] },
-    { role: "assistant", stopReason: "stop", content: [{ type: "text", text: "handled" }] },
-  ] }, "bash: exit 1");
+  const status = resolveAgentEndStatus(
+    {
+      messages: [
+        { role: "toolResult", toolName: "bash", isError: true, content: [{ type: "text", text: "exit 1" }] },
+        { role: "assistant", stopReason: "stop", content: [{ type: "text", text: "handled" }] },
+      ],
+    },
+    "bash: exit 1",
+  );
 
   assert.deepEqual(status, { state: "DONE", severity: "medium", summary: "turn completed" });
 });
 
 test("extension reports ERROR for failed final agent message", () => {
-  const status = resolveAgentEndStatus({ messages: [
-    { role: "assistant", stopReason: "error", errorMessage: "provider failed" },
-  ] }, null);
+  const status = resolveAgentEndStatus(
+    { messages: [{ role: "assistant", stopReason: "error", errorMessage: "provider failed" }] },
+    null,
+  );
 
   assert.deepEqual(status, { state: "ERROR", severity: "high", summary: "provider failed" });
 });
@@ -217,7 +343,9 @@ test("modern dashboard uses named Base16 roles with ANSI 16 colors", () => {
   assert.equal(DEFAULT_DASHBOARD_THEME.selectedSurface("x"), "x");
 
   const { palette: _palette, ...roles } = DEFAULT_DASHBOARD_THEME;
-  const renderedRoles = Object.values(roles).map((style) => style("x")).join("");
+  const renderedRoles = Object.values(roles)
+    .map((style) => style("x"))
+    .join("");
   assert.doesNotMatch(renderedRoles, /\x1b\[(?:38|48);(?:2|5);/);
 });
 
@@ -228,13 +356,36 @@ test("modern dashboard selects responsive layout modes", () => {
 });
 
 test("modern dashboard render lines fit the provided width", () => {
-  const status: PiMuxrStatus = { id: "1", paneId: "%1", tmuxSession: "main", tmuxWindow: "api", tmuxWindowIndex: "2", pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "ASK", severity: "high", summary: "Need permission to edit a very long config path before continuing", lastEventAt: 1_000, heartbeatAt: 1_000 };
-  const rows = buildDashboardRows([status], [parseTmuxPanes("main\t2\tapi\t%1\t1\tbash\ttitle\t123\n")[0]!], DEFAULT_CONFIG, 2_000);
+  const status: PiMuxrStatus = {
+    id: "1",
+    paneId: "%1",
+    tmuxSession: "main",
+    tmuxWindow: "api",
+    tmuxWindowIndex: "2",
+    pid: 1,
+    cwd: "/tmp/project",
+    piSessionFile: null,
+    model: null,
+    state: "ASK",
+    severity: "high",
+    summary: "Need permission to edit a very long config path before continuing",
+    lastEventAt: 1_000,
+    heartbeatAt: 1_000,
+  };
+  const rows = buildDashboardRows(
+    [status],
+    [parseTmuxPanes("main\t2\tapi\t%1\t1\tbash\ttitle\t123\n")[0]!],
+    DEFAULT_CONFIG,
+    2_000,
+  );
 
   for (const width of [60, 90, 130]) {
     const lines = renderDashboardLines({ rows, selected: 0, message: "Saved", width, height: 12, now: 2_000 });
     assert.ok(lines.length <= 12);
-    assert.ok(lines.every((line) => visibleWidth(line) <= width), `line exceeded width ${width}: ${lines.join("\n")}`);
+    assert.ok(
+      lines.every((line) => visibleWidth(line) <= width),
+      `line exceeded width ${width}: ${lines.join("\n")}`,
+    );
   }
 });
 
@@ -248,9 +399,30 @@ test("dashboard shows the package version at the right of the status bar", () =>
 });
 
 test("dashboard hides the status section when the terminal is too small", () => {
-  const shortDashboard = renderDashboardLines({ rows: [], selected: 0, message: null, width: 90, height: 7, now: 2_000 }).join("\n");
-  const narrowDashboard = renderDashboardLines({ rows: [], selected: 0, message: null, width: 60, height: 12, now: 2_000 }).join("\n");
-  const largeDashboard = renderDashboardLines({ rows: [], selected: 0, message: null, width: 90, height: 8, now: 2_000 }).join("\n");
+  const shortDashboard = renderDashboardLines({
+    rows: [],
+    selected: 0,
+    message: null,
+    width: 90,
+    height: 7,
+    now: 2_000,
+  }).join("\n");
+  const narrowDashboard = renderDashboardLines({
+    rows: [],
+    selected: 0,
+    message: null,
+    width: 60,
+    height: 12,
+    now: 2_000,
+  }).join("\n");
+  const largeDashboard = renderDashboardLines({
+    rows: [],
+    selected: 0,
+    message: null,
+    width: 90,
+    height: 8,
+    now: 2_000,
+  }).join("\n");
 
   for (const dashboard of [shortDashboard, narrowDashboard]) {
     assert.doesNotMatch(dashboard, /status/);
@@ -261,12 +433,48 @@ test("dashboard hides the status section when the terminal is too small", () => 
 });
 
 test("selected rows preserve the status color and show unread in its own column", () => {
-  const status: PiMuxrStatus = { id: "1", paneId: null, tmuxSession: "main", tmuxWindow: null, tmuxWindowIndex: null, pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "DONE", severity: "medium", summary: "Done", lastEventAt: 1_000, heartbeatAt: 1_000 };
+  const status: PiMuxrStatus = {
+    id: "1",
+    paneId: null,
+    tmuxSession: "main",
+    tmuxWindow: null,
+    tmuxWindowIndex: null,
+    pid: 1,
+    cwd: "/tmp/project",
+    piSessionFile: null,
+    model: null,
+    state: "DONE",
+    severity: "medium",
+    summary: "Done",
+    lastEventAt: 1_000,
+    heartbeatAt: 1_000,
+  };
   const rows = buildDashboardRows([status], [], DEFAULT_CONFIG, 2_000);
   const readRows = buildDashboardRows([{ ...status, readUntilEventAt: 1_000 }], [], DEFAULT_CONFIG, 2_000);
-  const selectedLine = renderDashboardLines({ rows, selected: 0, message: null, width: 90, height: 11, now: 2_000 })[1]!;
-  const unselectedLine = renderDashboardLines({ rows, selected: 1, message: null, width: 90, height: 11, now: 2_000 })[1]!;
-  const readLine = renderDashboardLines({ rows: readRows, selected: 1, message: null, width: 90, height: 11, now: 2_000 })[1]!;
+  const selectedLine = renderDashboardLines({
+    rows,
+    selected: 0,
+    message: null,
+    width: 90,
+    height: 11,
+    now: 2_000,
+  })[1]!;
+  const unselectedLine = renderDashboardLines({
+    rows,
+    selected: 1,
+    message: null,
+    width: 90,
+    height: 11,
+    now: 2_000,
+  })[1]!;
+  const readLine = renderDashboardLines({
+    rows: readRows,
+    selected: 1,
+    message: null,
+    width: 90,
+    height: 11,
+    now: 2_000,
+  })[1]!;
 
   assert.match(selectedLine, /\x1b\[94m❯\x1b\[39m \x1b\[92m DONE\x1b\[39m \x1b\[93m●\x1b\[39m \x1b\[96mmain/);
   assert.match(unselectedLine, /  \x1b\[92m DONE\x1b\[39m \x1b\[93m●\x1b\[39m \x1b\[96mmain/);
@@ -275,9 +483,37 @@ test("selected rows preserve the status color and show unread in its own column"
 });
 
 test("dashboard tables show the last prompt fourth and the root path last", () => {
-  const status: PiMuxrStatus = { id: "1", paneId: "%1", tmuxSession: "main", tmuxWindow: "api", tmuxWindowIndex: "2", pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "ASK", severity: "high", summary: "Waiting", lastPrompt: "Fix login flow", lastEventAt: 1_000, heartbeatAt: 1_000 };
-  const rows = buildDashboardRows([status], [parseTmuxPanes("main\t2\tapi\t%1\t1\tbash\ttitle\t123\n")[0]!], DEFAULT_CONFIG, 2_000);
-  const interactiveTable = renderDashboardLines({ rows, selected: 0, message: null, width: 130, height: 11, now: 2_000 }).join("\n");
+  const status: PiMuxrStatus = {
+    id: "1",
+    paneId: "%1",
+    tmuxSession: "main",
+    tmuxWindow: "api",
+    tmuxWindowIndex: "2",
+    pid: 1,
+    cwd: "/tmp/project",
+    piSessionFile: null,
+    model: null,
+    state: "ASK",
+    severity: "high",
+    summary: "Waiting",
+    lastPrompt: "Fix login flow",
+    lastEventAt: 1_000,
+    heartbeatAt: 1_000,
+  };
+  const rows = buildDashboardRows(
+    [status],
+    [parseTmuxPanes("main\t2\tapi\t%1\t1\tbash\ttitle\t123\n")[0]!],
+    DEFAULT_CONFIG,
+    2_000,
+  );
+  const interactiveTable = renderDashboardLines({
+    rows,
+    selected: 0,
+    message: null,
+    width: 130,
+    height: 11,
+    now: 2_000,
+  }).join("\n");
   const plainTable = renderRows(rows, 0, 2_000);
 
   for (const table of [interactiveTable, plainTable]) {

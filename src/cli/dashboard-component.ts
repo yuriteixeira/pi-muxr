@@ -2,7 +2,14 @@ import { Key, matchesKey, truncateToWidth, visibleWidth, type Component } from "
 import type { DashboardRow } from "../domain/status.js";
 import { VERSION } from "../version.js";
 import { getStateVisual } from "./dashboard-icons.js";
-import { chooseDashboardLayout, fitCell, getVisibleRowRange, padToWidth, toRowText, type DashboardLayoutMode } from "./dashboard-layout.js";
+import {
+  chooseDashboardLayout,
+  fitCell,
+  getVisibleRowRange,
+  padToWidth,
+  toRowText,
+  type DashboardLayoutMode,
+} from "./dashboard-layout.js";
 import { DEFAULT_DASHBOARD_THEME, type DashboardTheme, type StyleFn } from "./dashboard-theme.js";
 
 export interface DashboardActions {
@@ -59,13 +66,21 @@ export class DashboardComponent implements Component {
     else if (matchesKey(data, "r")) this.actions.refresh();
     else if (matchesKey(data, "g")) this.actions.selectFirst();
     else if (matchesKey(data, Key.shift("g")) || data === "G") this.actions.selectLast();
-    else if (matchesKey(data, "q") || matchesKey(data, Key.escape) || matchesKey(data, Key.ctrl("c"))) this.actions.quit();
+    else if (matchesKey(data, "q") || matchesKey(data, Key.escape) || matchesKey(data, Key.ctrl("c")))
+      this.actions.quit();
   }
 
   render(width: number): string[] {
     const height = this.getHeight();
     if (this.cachedLines && this.cachedWidth === width && this.cachedHeight === height) return this.cachedLines;
-    this.cachedLines = renderDashboardLines({ rows: this.rows, selected: this.selected, message: this.message, width, height, theme: this.theme });
+    this.cachedLines = renderDashboardLines({
+      rows: this.rows,
+      selected: this.selected,
+      message: this.message,
+      width,
+      height,
+      theme: this.theme,
+    });
     this.cachedWidth = width;
     this.cachedHeight = height;
     return this.cachedLines;
@@ -90,7 +105,15 @@ export function renderDashboardLines(options: RenderDashboardOptions): string[] 
   const showStatusSection = height >= messageLines.length + 8 && statusSectionFits(options.rows, mode, width, theme);
   const fixedLineCount = 2 + messageLines.length + (showStatusSection ? 5 : 0);
   const bodyHeight = Math.max(1, height - fixedLineCount);
-  const rows = renderRowsForViewport(options.rows, options.selected, mode, innerWidth, bodyHeight, options.now ?? Date.now(), theme);
+  const rows = renderRowsForViewport(
+    options.rows,
+    options.selected,
+    mode,
+    innerWidth,
+    bodyHeight,
+    options.now ?? Date.now(),
+    theme,
+  );
   const statusSection = showStatusSection ? renderStatusSection(options.rows, mode, width, theme) : [];
 
   const lines = [
@@ -110,18 +133,38 @@ interface RenderedBodyLine {
   selected?: boolean;
 }
 
-function renderRowsForViewport(rows: DashboardRow[], selected: number, mode: DashboardLayoutMode, width: number, height: number, now: number, theme: DashboardTheme): RenderedBodyLine[] {
+function renderRowsForViewport(
+  rows: DashboardRow[],
+  selected: number,
+  mode: DashboardLayoutMode,
+  width: number,
+  height: number,
+  now: number,
+  theme: DashboardTheme,
+): RenderedBodyLine[] {
   if (rows.length === 0) return renderEmptyState(width, height, theme);
   return renderTableRows(rows, selected, mode, width, height, now, theme);
 }
 
-function renderTableRows(rows: DashboardRow[], selected: number, mode: DashboardLayoutMode, width: number, height: number, now: number, theme: DashboardTheme): RenderedBodyLine[] {
+function renderTableRows(
+  rows: DashboardRow[],
+  selected: number,
+  mode: DashboardLayoutMode,
+  width: number,
+  height: number,
+  now: number,
+  theme: DashboardTheme,
+): RenderedBodyLine[] {
   const reserveHint = rows.length > height && height > 1 ? 1 : 0;
   const range = getVisibleRowRange(rows.length, selected, Math.max(1, height - reserveHint));
   const lines: RenderedBodyLine[] = rows.slice(range.start, range.end).map((row, offset) => {
     const index = range.start + offset;
     const isSelected = index === selected;
-    return { text: renderTableRow(row, isSelected, mode, width, now, theme), style: isSelected ? theme.selectedSurface : undefined, selected: isSelected };
+    return {
+      text: renderTableRow(row, isSelected, mode, width, now, theme),
+      style: isSelected ? theme.selectedSurface : undefined,
+      selected: isSelected,
+    };
   });
   if (reserveHint) lines.push({ text: renderScrollHint(range, width, theme) });
   return padBody(lines, height, width);
@@ -132,7 +175,14 @@ function renderEmptyState(width: number, height: number, theme: DashboardTheme):
   return padBody([{ text: centerLine(empty, width) }], height, width);
 }
 
-function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLayoutMode, width: number, now: number, theme: DashboardTheme): string {
+function renderTableRow(
+  row: DashboardRow,
+  selected: boolean,
+  mode: DashboardLayoutMode,
+  width: number,
+  now: number,
+  theme: DashboardTheme,
+): string {
   const text = toRowText(row, now);
   const visual = getStateVisual(row.displayState, theme, now);
   const indicator = selected ? theme.accent("❯") : " ";
@@ -140,14 +190,17 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
   const state = `${indicator} ${visual.style(`${visual.icon} ${visual.label}`)}`;
   const summaryStyle = row.unread && row.actionable ? theme.bright : theme.text;
   const innerWidth = Math.max(0, width);
-  const columns = mode === "wide"
-    ? { session: 16, prompt: 24, rootPath: 24, age: 6 }
-    : mode === "medium"
-      ? { session: 12, prompt: 20, rootPath: 20, age: 6 }
-      : { session: 8, prompt: 10, rootPath: 10, age: 0 };
+  const columns =
+    mode === "wide"
+      ? { session: 16, prompt: 24, rootPath: 24, age: 6 }
+      : mode === "medium"
+        ? { session: 12, prompt: 20, rootPath: 20, age: 6 }
+        : { session: 8, prompt: 10, rootPath: 10, age: 0 };
   const statusWidth = 8;
   const unreadWidth = 1;
-  const fixedWidths = [statusWidth, unreadWidth, columns.session, columns.prompt, columns.age, columns.rootPath].filter((value) => value > 0);
+  const fixedWidths = [statusWidth, unreadWidth, columns.session, columns.prompt, columns.age, columns.rootPath].filter(
+    (value) => value > 0,
+  );
   const fixedWidth = fixedWidths.reduce((total, value) => total + value, 0);
   const fixedSeparatorWidth = fixedWidths.length - 1;
   const summaryWidth = Math.max(0, innerWidth - fixedWidth - fixedSeparatorWidth - 1);
@@ -167,13 +220,23 @@ function renderHeader(width: number, theme: DashboardTheme): string {
   return renderSectionTop("pi-muxr", width, theme, theme.bright);
 }
 
-function statusSectionFits(rows: DashboardRow[], mode: DashboardLayoutMode, width: number, theme: DashboardTheme): boolean {
+function statusSectionFits(
+  rows: DashboardRow[],
+  mode: DashboardLayoutMode,
+  width: number,
+  theme: DashboardTheme,
+): boolean {
   const footerWidth = visibleWidth(renderFooterContent(theme)) + 2 + visibleWidth(`v${VERSION}`);
   const contentWidth = Math.max(visibleWidth(renderStats(rows, mode, theme)), footerWidth);
   return width >= contentWidth + 2;
 }
 
-function renderStatusSection(rows: DashboardRow[], mode: DashboardLayoutMode, width: number, theme: DashboardTheme): string[] {
+function renderStatusSection(
+  rows: DashboardRow[],
+  mode: DashboardLayoutMode,
+  width: number,
+  theme: DashboardTheme,
+): string[] {
   return [
     renderSectionTop("status", width, theme),
     frameLine(renderStats(rows, mode, theme), width, theme, theme.surface),
@@ -204,23 +267,36 @@ function renderFooterContent(theme: DashboardTheme): string {
 
 function renderMessageLines(message: string | null, width: number, theme: DashboardTheme): string[] {
   if (!message) return [];
-  return message.split("\n").slice(0, 3).map((line, index) => {
-    const prefix = index === 0 ? ` ${theme.warning("󰋼")} ` : "   ";
-    return `${prefix}${fitCell(line, Math.max(0, width - visibleWidth(prefix)))}`;
-  });
+  return message
+    .split("\n")
+    .slice(0, 3)
+    .map((line, index) => {
+      const prefix = index === 0 ? ` ${theme.warning("󰋼")} ` : "   ";
+      return `${prefix}${fitCell(line, Math.max(0, width - visibleWidth(prefix)))}`;
+    });
 }
 
-function renderScrollHint(range: { clippedBefore: number; clippedAfter: number }, width: number, theme: DashboardTheme): string {
+function renderScrollHint(
+  range: { clippedBefore: number; clippedAfter: number },
+  width: number,
+  theme: DashboardTheme,
+): string {
   const before = range.clippedBefore > 0 ? `${range.clippedBefore} above` : "top";
   const after = range.clippedAfter > 0 ? `${range.clippedAfter} below` : "bottom";
   return centerLine(theme.muted(`— ${before} • ${after} —`), width);
 }
 
-function renderSectionTop(title: string, width: number, theme: DashboardTheme, titleStyle: StyleFn = theme.muted): string {
+function renderSectionTop(
+  title: string,
+  width: number,
+  theme: DashboardTheme,
+  titleStyle: StyleFn = theme.muted,
+): string {
   const innerWidth = Math.max(0, width - 2);
   const label = ` ${titleStyle(title)} `;
   const fillWidth = Math.max(0, innerWidth - visibleWidth(label) - 1);
-  const content = fillWidth > 0 ? `${theme.border("─")}${label}${theme.border("─".repeat(fillWidth))}` : fitCell(label, innerWidth);
+  const content =
+    fillWidth > 0 ? `${theme.border("─")}${label}${theme.border("─".repeat(fillWidth))}` : fitCell(label, innerWidth);
   return `${theme.border("╭")}${content}${theme.border("╮")}`;
 }
 
@@ -232,7 +308,13 @@ function renderBottom(width: number, theme: DashboardTheme): string {
   return `${theme.border("╰")}${theme.border("─".repeat(Math.max(0, width - 2)))}${theme.border("╯")}`;
 }
 
-function frameLine(content: string, width: number, theme: DashboardTheme, style?: StyleFn, borderStyle: StyleFn = theme.border): string {
+function frameLine(
+  content: string,
+  width: number,
+  theme: DashboardTheme,
+  style?: StyleFn,
+  borderStyle: StyleFn = theme.border,
+): string {
   const innerWidth = Math.max(0, width - 2);
   const line = padToWidth(content, innerWidth);
   return `${borderStyle("│")}${style ? style(line) : line}${borderStyle("│")}`;
@@ -279,4 +361,3 @@ function centerLine(text: string, width: number): string {
   const leftPadding = Math.max(0, Math.floor((width - visibleWidth(text)) / 2));
   return padToWidth(`${" ".repeat(leftPadding)}${text}`, width);
 }
-

@@ -1,3 +1,5 @@
+git diff --cached --name-only --diff-filter=ACMR -z | xargs -0 -r pnpm exec prettier --check --ignore-unknown
+
 if ! git diff --cached --name-only | grep -Eq '^(src/|pnpm-lock\.yaml$)'; then
   echo "Skipping build and tests because no source or lockfile changes are staged."
   exit 0

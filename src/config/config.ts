@@ -28,8 +28,12 @@ export function loadConfig(configPath = defaultConfigPath()): DashboardConfig {
   }
 
   const stateDir = expandHome(raw.stateDir ?? DEFAULT_CONFIG.stateDir);
-  const databasePath = expandHome(raw.databasePath ?? (raw.stateDir ? `${stateDir}/pi-muxr.sqlite` : DEFAULT_CONFIG.databasePath));
-  const actionableStates = (raw.actionableStates ?? DEFAULT_CONFIG.actionableStates).filter((state): state is DashboardConfig["actionableStates"][number] => PI_MUXR_STATES.includes(state as never));
+  const databasePath = expandHome(
+    raw.databasePath ?? (raw.stateDir ? `${stateDir}/pi-muxr.sqlite` : DEFAULT_CONFIG.databasePath),
+  );
+  const actionableStates = (raw.actionableStates ?? DEFAULT_CONFIG.actionableStates).filter(
+    (state): state is DashboardConfig["actionableStates"][number] => PI_MUXR_STATES.includes(state as never),
+  );
 
   return {
     ...DEFAULT_CONFIG,

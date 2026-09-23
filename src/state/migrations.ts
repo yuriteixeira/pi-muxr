@@ -18,7 +18,8 @@ export function applyDatabaseMigrations(db: Database, migrations: DatabaseMigrat
   try {
     const currentVersion = readDatabaseVersion(db);
     const latestVersion = migrations.at(-1)?.version ?? 0;
-    if (currentVersion > latestVersion) throw new Error(`Database schema version ${currentVersion} is newer than supported version ${latestVersion}`);
+    if (currentVersion > latestVersion)
+      throw new Error(`Database schema version ${currentVersion} is newer than supported version ${latestVersion}`);
 
     for (const migration of migrations) {
       if (migration.version <= currentVersion) continue;
@@ -45,7 +46,8 @@ function hasColumn(db: Database, table: string, column: string): boolean {
 function validateMigrationOrder(migrations: DatabaseMigration[]): void {
   for (let index = 0; index < migrations.length; index += 1) {
     const expectedVersion = index + 1;
-    if (migrations[index]?.version !== expectedVersion) throw new Error(`Database migration version ${expectedVersion} is missing or out of order`);
+    if (migrations[index]?.version !== expectedVersion)
+      throw new Error(`Database migration version ${expectedVersion} is missing or out of order`);
   }
 }
 

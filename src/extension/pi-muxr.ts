@@ -26,7 +26,17 @@ interface NotificationSnapshot {
 }
 
 export default function piMuxrExtension(pi: any): void {
-  const runtime: RuntimeState = { config: loadConfig(), db: null, id: null, heartbeatTimer: null, lastError: null, model: null, lastPrompt: null, handledToolCallIds: new Set(), hasToolPreviewInPrompt: false };
+  const runtime: RuntimeState = {
+    config: loadConfig(),
+    db: null,
+    id: null,
+    heartbeatTimer: null,
+    lastError: null,
+    model: null,
+    lastPrompt: null,
+    handledToolCallIds: new Set(),
+    hasToolPreviewInPrompt: false,
+  };
 
   pi.on("session_start", async (_event: unknown, ctx: any) => {
     runtime.config = loadConfig();
@@ -107,7 +117,10 @@ function handleToolResult(runtime: RuntimeState, event: any, ctx: any): void {
   runtime.lastError = event.isError === true ? `${formatToolName(event.toolName)} ${summarizeResult(event)}` : null;
 }
 
-export function resolveAgentEndStatus(event: unknown, fallbackError: string | null): Pick<PiMuxrStatus, "state" | "severity" | "summary"> {
+export function resolveAgentEndStatus(
+  event: unknown,
+  fallbackError: string | null,
+): Pick<PiMuxrStatus, "state" | "severity" | "summary"> {
   const failure = summarizeAgentEndFailure(event);
   if (failure) return { state: "ERROR", severity: "high", summary: failure };
   if (!hasAgentEndMessages(event) && fallbackError) return { state: "ERROR", severity: "high", summary: fallbackError };
@@ -120,7 +133,9 @@ function summarizeAgentEndFailure(event: unknown): string | null {
 
   const assistant = findLastMessageByRole(messages, "assistant");
   if (isRecord(assistant) && (assistant.stopReason === "error" || assistant.stopReason === "aborted")) {
-    return typeof assistant.errorMessage === "string" && assistant.errorMessage.trim() ? truncate(assistant.errorMessage.trim(), 200) : `assistant ${assistant.stopReason}`;
+    return typeof assistant.errorMessage === "string" && assistant.errorMessage.trim()
+      ? truncate(assistant.errorMessage.trim(), 200)
+      : `assistant ${assistant.stopReason}`;
   }
 
   const lastMessage = messages.at(-1);
@@ -153,7 +168,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object";
 }
 
-function writeState(runtime: RuntimeState, ctx: any, state: PiMuxrState, severity: PiMuxrStatus["severity"], summary: string): void {
+function writeState(
+  runtime: RuntimeState,
+  ctx: any,
+  state: PiMuxrState,
+  severity: PiMuxrStatus["severity"],
+  summary: string,
+): void {
   if (!runtime.db || !runtime.id) return;
   const now = Date.now();
   const pane = currentPane();
@@ -164,7 +185,16 @@ function writeState(runtime: RuntimeState, ctx: any, state: PiMuxrState, severit
   maybeNotify(runtime, status, notificationSnapshot);
 }
 
-function baseStatus(runtime: RuntimeState, ctx: any, pane: TmuxPane | null, state: PiMuxrState, severity: PiMuxrStatus["severity"], summary: string, now: number, event: boolean): PiMuxrStatus {
+function baseStatus(
+  runtime: RuntimeState,
+  ctx: any,
+  pane: TmuxPane | null,
+  state: PiMuxrState,
+  severity: PiMuxrStatus["severity"],
+  summary: string,
+  now: number,
+  event: boolean,
+): PiMuxrStatus {
   return {
     id: runtime.id ?? createSessionId(ctx),
     paneId: pane?.paneId ?? process.env.TMUX_PANE ?? null,
@@ -205,14 +235,19 @@ function maybeNotify(runtime: RuntimeState, status: PiMuxrStatus, snapshot: Noti
   if (!runtime.db || !runtime.config.desktopNotifications) return;
   if (!DEFAULT_ACTIONABLE_STATES.includes(status.state)) return;
   if (snapshot?.state === status.state) return;
-  if (runtime.config.suppressDesktopNotificationsWhenDashboardOpen && hasFreshDashboardPresence(runtime.db, runtime.config.dashboardPresenceStaleAfterMs)) return;
+  if (
+    runtime.config.suppressDesktopNotificationsWhenDashboardOpen &&
+    hasFreshDashboardPresence(runtime.db, runtime.config.dashboardPresenceStaleAfterMs)
+  )
+    return;
   if ((snapshot?.lastNotifiedEventAt ?? 0) >= status.lastEventAt) return;
   notifyStatus(status);
   markNotified(runtime.db, status.id, status.lastEventAt);
 }
 
 function readNotificationSnapshot(db: Database, id: string): NotificationSnapshot | null {
-  const row = db.prepare("SELECT state, last_notified_event_at FROM sessions WHERE id = ?").get(id) as { state?: PiMuxrState; last_notified_event_at?: number | null } | undefined;
+  const row = db.prepare("SELECT state, last_notified_event_at FROM sessions WHERE id = ?").get(id) as
+    { state?: PiMuxrState; last_notified_event_at?: number | null } | undefined;
   if (!row?.state) return null;
   return { state: row.state, lastNotifiedEventAt: row.last_notified_event_at ?? null };
 }
@@ -224,7 +259,11 @@ function createSessionId(ctx: any): string {
 }
 
 function getSessionFile(ctx: any): string | null {
-  try { return ctx.sessionManager?.getSessionFile?.() ?? null; } catch { return null; }
+  try {
+    return ctx.sessionManager?.getSessionFile?.() ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function currentPane(): TmuxPane | null {
@@ -251,14 +290,18 @@ function formatTurnIndex(turnIndex: unknown): string {
 
 export function summarizeAskUserRequest(input: unknown): string {
   const question = extractAskQuestion(input);
-  return question ? `${formatToolName("ask_user")} ${truncate(question, 180)}` : `${formatToolName("ask_user")} waiting for input`;
+  return question
+    ? `${formatToolName("ask_user")} ${truncate(question, 180)}`
+    : `${formatToolName("ask_user")} waiting for input`;
 }
 
 export function summarizeAskUserResult(event: any): string {
   if (event.details?.cancelled) return `${formatToolName("ask_user")} cancelled`;
   const response = event.details?.response;
-  if (response?.kind === "selection" && Array.isArray(response.selections)) return `${formatToolName("ask_user")} answered: ${truncate(response.selections.join(", "), 160)}`;
-  if (response?.kind === "freeform" && typeof response.text === "string") return `${formatToolName("ask_user")} answered: ${truncate(response.text, 160)}`;
+  if (response?.kind === "selection" && Array.isArray(response.selections))
+    return `${formatToolName("ask_user")} answered: ${truncate(response.selections.join(", "), 160)}`;
+  if (response?.kind === "freeform" && typeof response.text === "string")
+    return `${formatToolName("ask_user")} answered: ${truncate(response.text, 160)}`;
   return `${formatToolName("ask_user")} answered`;
 }
 
@@ -283,12 +326,20 @@ function summarizeToolInput(toolName: unknown, input: unknown): string {
   if (typeof record.path === "string") return ` ${truncate(record.path, 160)}`;
   if (typeof record.url === "string") return ` ${truncate(record.url, 160)}`;
   if (typeof record.query === "string") return ` ${truncate(record.query, 160)}`;
-  try { return ` ${truncate(JSON.stringify(input), 120)}`; } catch { return ""; }
+  try {
+    return ` ${truncate(JSON.stringify(input), 120)}`;
+  } catch {
+    return "";
+  }
 }
 
 function summarizeResult(event: any): string {
   if (typeof event.content === "string") return truncate(event.content, 200);
-  try { return truncate(JSON.stringify(event.content ?? event.details ?? {}), 200); } catch { return "tool failed"; }
+  try {
+    return truncate(JSON.stringify(event.content ?? event.details ?? {}), 200);
+  } catch {
+    return "tool failed";
+  }
 }
 
 function truncate(value: string, max: number): string {

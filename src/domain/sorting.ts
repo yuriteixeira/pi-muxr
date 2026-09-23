@@ -18,11 +18,13 @@ function actionBucket(row: DashboardRow): number {
 }
 
 export function compareDashboardRows(a: DashboardRow, b: DashboardRow): number {
-  return actionBucket(a) - actionBucket(b)
-    || STATE_PRIORITY[a.displayState] - STATE_PRIORITY[b.displayState]
-    || b.lastEventAt - a.lastEventAt
-    || projectName(a.cwd).localeCompare(projectName(b.cwd))
-    || a.id.localeCompare(b.id);
+  return (
+    actionBucket(a) - actionBucket(b) ||
+    STATE_PRIORITY[a.displayState] - STATE_PRIORITY[b.displayState] ||
+    b.lastEventAt - a.lastEventAt ||
+    projectName(a.cwd).localeCompare(projectName(b.cwd)) ||
+    a.id.localeCompare(b.id)
+  );
 }
 
 export function sortDashboardRows(rows: DashboardRow[]): DashboardRow[] {

@@ -1,6 +1,6 @@
 # Welcome to `pi-muxr`!
 
-If you use [Pi](https://pi.dev) and is a die-hard [Tmux](https://github.com/tmux/tmux) user, maybe all you ever wanted from [Herdr](https://herdr.dev/) was its dashboard & navigation capabilities. 
+If you use [Pi](https://pi.dev) and is a die-hard [Tmux](https://github.com/tmux/tmux) user, maybe all you ever wanted from [Herdr](https://herdr.dev/) was its dashboard & navigation capabilities.
 Then, **you came to the right place!**
 
 The `pi-muxr` extension provides:
@@ -8,8 +8,8 @@ The `pi-muxr` extension provides:
 1. A dashboard showing Pi sessions running on Tmux panes (including a sidebar mode)
 2. A web app serving as a proxy for those, so you can continue your work even if you're away from your keyboard.
 
-| Sidebar | Fullscreen | Web App |
-| - | - | - |
+| Sidebar                                  | Fullscreen                                     | Web App                          |
+| ---------------------------------------- | ---------------------------------------------- | -------------------------------- |
 | ![Sidebar](./docs/resources/sidebar.png) | ![Fullscreen](./docs/resources/fullscreen.png) | ![Web](./docs/resources/web.png) |
 
 ## Installation

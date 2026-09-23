@@ -1,6 +1,6 @@
 {
   "name": "@yuriteixeira/pi-muxr",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "tmux dashboard for Pi coding sessions",
   "type": "module",
   "packageManager": "pnpm@11.0.0-dev.1005",
@@ -47,6 +47,7 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.json",
+    "format:check": "prettier --check .",
     "start": "tsc -p tsconfig.json --watch --preserveWatchOutput",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test --experimental-sqlite --import tsx test/*.test.ts",
@@ -65,6 +66,7 @@
     "@types/node": "latest",
     "@types/ws": "^8.18.1",
     "husky": "^9.1.7",
+    "prettier": "^3.9.9",
     "tsx": "latest",
     "typescript": "latest"
   },

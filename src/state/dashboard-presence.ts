@@ -5,12 +5,19 @@ export function createPresenceId(): string {
   return randomUUID();
 }
 
-export function writeDashboardPresence(db: Database, instanceId: string, tmuxPaneId: string | null, at = Date.now()): void {
-  db.prepare(`
+export function writeDashboardPresence(
+  db: Database,
+  instanceId: string,
+  tmuxPaneId: string | null,
+  at = Date.now(),
+): void {
+  db.prepare(
+    `
     INSERT INTO dashboard_presence (instance_id, pid, tmux_pane_id, started_at, heartbeat_at)
     VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(instance_id) DO UPDATE SET pid=excluded.pid, tmux_pane_id=excluded.tmux_pane_id, heartbeat_at=excluded.heartbeat_at
-  `).run(instanceId, process.pid, tmuxPaneId, at, at);
+  `,
+  ).run(instanceId, process.pid, tmuxPaneId, at, at);
 }
 
 export function cleanupDashboardPresence(db: Database, staleAfterMs: number, at = Date.now()): void {

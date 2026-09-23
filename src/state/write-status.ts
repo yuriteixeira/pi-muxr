@@ -2,12 +2,17 @@ import type { PiMuxrState, PiMuxrStatus } from "../domain/status.js";
 import { DEFAULT_ACTIONABLE_STATES } from "../domain/status.js";
 import type { Database } from "./database.js";
 
-export type StatusInput = Omit<PiMuxrStatus, "readUntilEventAt" | "acknowledgedAt" | "dismissedUntilEventAt" | "lastNotifiedEventAt"> & Partial<Pick<PiMuxrStatus, "readUntilEventAt" | "acknowledgedAt" | "dismissedUntilEventAt" | "lastNotifiedEventAt">>;
+export type StatusInput = Omit<
+  PiMuxrStatus,
+  "readUntilEventAt" | "acknowledgedAt" | "dismissedUntilEventAt" | "lastNotifiedEventAt"
+> &
+  Partial<Pick<PiMuxrStatus, "readUntilEventAt" | "acknowledgedAt" | "dismissedUntilEventAt" | "lastNotifiedEventAt">>;
 
 const LAST_PROMPT_MAX_LENGTH = 120;
 
 export function upsertStatus(db: Database, status: StatusInput): void {
-  db.prepare(`
+  db.prepare(
+    `
     INSERT INTO sessions (id, pane_id, tmux_session, tmux_window, tmux_window_index, pid, cwd, pi_session_file, model, state, severity, summary, last_prompt, last_event_at, heartbeat_at, read_until_event_at, acknowledged_at, dismissed_until_event_at, last_notified_event_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
@@ -29,7 +34,28 @@ export function upsertStatus(db: Database, status: StatusInput): void {
       acknowledged_at=COALESCE(sessions.acknowledged_at, excluded.acknowledged_at),
       dismissed_until_event_at=COALESCE(sessions.dismissed_until_event_at, excluded.dismissed_until_event_at),
       last_notified_event_at=COALESCE(sessions.last_notified_event_at, excluded.last_notified_event_at)
-  `).run(status.id, status.paneId, status.tmuxSession, status.tmuxWindow, status.tmuxWindowIndex, status.pid, status.cwd, status.piSessionFile, status.model, status.state, status.severity, truncate(status.summary, 500), truncateNullable(status.lastPrompt, LAST_PROMPT_MAX_LENGTH), status.lastEventAt, status.heartbeatAt, status.readUntilEventAt ?? null, status.acknowledgedAt ?? null, status.dismissedUntilEventAt ?? null, status.lastNotifiedEventAt ?? null);
+  `,
+  ).run(
+    status.id,
+    status.paneId,
+    status.tmuxSession,
+    status.tmuxWindow,
+    status.tmuxWindowIndex,
+    status.pid,
+    status.cwd,
+    status.piSessionFile,
+    status.model,
+    status.state,
+    status.severity,
+    truncate(status.summary, 500),
+    truncateNullable(status.lastPrompt, LAST_PROMPT_MAX_LENGTH),
+    status.lastEventAt,
+    status.heartbeatAt,
+    status.readUntilEventAt ?? null,
+    status.acknowledgedAt ?? null,
+    status.dismissedUntilEventAt ?? null,
+    status.lastNotifiedEventAt ?? null,
+  );
 }
 
 export function removeStatus(db: Database, id: string): void {
@@ -49,21 +75,33 @@ export function markRead(db: Database, id: string, lastEventAt: number): void {
 }
 
 export function dismissStatus(db: Database, id: string, lastEventAt: number, at = Date.now()): void {
-  db.prepare("UPDATE sessions SET dismissed_until_event_at = ?, acknowledged_at = ? WHERE id = ?").run(lastEventAt, at, id);
+  db.prepare("UPDATE sessions SET dismissed_until_event_at = ?, acknowledged_at = ? WHERE id = ?").run(
+    lastEventAt,
+    at,
+    id,
+  );
 }
 
-export function dismissAllRead(db: Database, actionableStatesOrAt: PiMuxrState[] | number = DEFAULT_ACTIONABLE_STATES, at = Date.now()): number {
+export function dismissAllRead(
+  db: Database,
+  actionableStatesOrAt: PiMuxrState[] | number = DEFAULT_ACTIONABLE_STATES,
+  at = Date.now(),
+): number {
   const actionableStates = Array.isArray(actionableStatesOrAt) ? actionableStatesOrAt : DEFAULT_ACTIONABLE_STATES;
   const acknowledgedAt = Array.isArray(actionableStatesOrAt) ? at : actionableStatesOrAt;
   if (actionableStates.length === 0) return 0;
   const placeholders = actionableStates.map(() => "?").join(", ");
-  const result = db.prepare(`
+  const result = db
+    .prepare(
+      `
     UPDATE sessions
     SET dismissed_until_event_at = last_event_at, acknowledged_at = ?
     WHERE state IN (${placeholders})
       AND COALESCE(read_until_event_at, 0) >= last_event_at
       AND COALESCE(dismissed_until_event_at, 0) < last_event_at
-  `).run(acknowledgedAt, ...actionableStates);
+  `,
+    )
+    .run(acknowledgedAt, ...actionableStates);
   return Number(result.changes ?? 0);
 }
 

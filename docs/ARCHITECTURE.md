@@ -79,15 +79,15 @@ The database also contains `dashboard_presence`. Dashboard processes update this
 
 The domain supports these states:
 
-| State | Meaning |
-| --- | --- |
-| `ASK` | Pi is waiting for user input through `ask_user`. |
-| `ERROR` | A turn or tool ended with an error. |
-| `DONE` | A turn completed. |
-| `QUEUED` | Work is waiting to start. |
-| `RUN` | Pi is processing a turn or tool. |
-| `IDLE` | The session is alive but not active. |
-| `STALE` | Internal display classification for an expired heartbeat or a missing tmux pane. |
+| State    | Meaning                                                                          |
+| -------- | -------------------------------------------------------------------------------- |
+| `ASK`    | Pi is waiting for user input through `ask_user`.                                 |
+| `ERROR`  | A turn or tool ended with an error.                                              |
+| `DONE`   | A turn completed.                                                                |
+| `QUEUED` | Work is waiting to start.                                                        |
+| `RUN`    | Pi is processing a turn or tool.                                                 |
+| `IDLE`   | The session is alive but not active.                                             |
+| `STALE`  | Internal display classification for an expired heartbeat or a missing tmux pane. |
 
 By default, `ASK`, `ERROR`, and `DONE` are actionable. The configuration can change the actionable states used by the dashboard, terminal bell, dismissal actions, and browser notifications. Desktop notifications always use the default actionable states.
 
