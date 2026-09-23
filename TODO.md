@@ -1,5 +1,4 @@
 # TODO
-- [ ] **build: do I need to build/dist?**
 - [ ] fix: columns should have fixed width
 - [ ] fix: more space for session and last prompt in "narrow" mode.
 
@@ -10,3 +9,6 @@
 - [ ] (maybe, reflect) feat: mark as read instead of dismiss
 - [ ] chore: focused tests (being siblings with the module they are testing)
 - [ ] refactor: review sidebar.ts (eg: can call `build*Command` functions directly instead of passing them as params)
+
+# Done
+- [x] **build: do I need to build/dist?** (no, but since pi-muxr binary needs compilation, let's build them all)
