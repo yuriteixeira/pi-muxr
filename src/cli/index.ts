@@ -43,8 +43,7 @@ function main(argv: string[]): void {
 
     const sidebarSide = parseSidebarSide(argv);
     if (sidebarSide) {
-      const result = toggleSidebar(sidebarSide);
-      console.log(result === "created" ? `Opened and pinned pi-muxr sidebars on the ${sidebarSide}.` : "Closed and unpinned pi-muxr sidebars.");
+      toggleSidebar(sidebarSide);
       return;
     }
   } catch (error) {
