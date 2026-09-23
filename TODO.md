@@ -1,6 +1,10 @@
-- [ ] feat: daemon that will received notification's click and activate the right tmux pane
+# TODO
+- [ ] **build: do I need to build/dist?**
 - [ ] fix: columns should have fixed width
 - [ ] fix: more space for session and last prompt in "narrow" mode.
+
+# Next
+- [ ] feat: daemon that will received notification's click and activate the right tmux pane
 - [ ] feat: status bar for "narrow" mode
 - [ ] fix: "no pi sessions" msg is misleading (since you can dismiss... maybe we should have a "dismissed" panel)
 - [ ] (maybe, reflect) feat: mark as read instead of dismiss
