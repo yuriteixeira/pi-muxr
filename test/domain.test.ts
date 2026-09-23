@@ -10,7 +10,7 @@ import { openDatabase } from "../src/state/database.ts";
 import { readStatuses } from "../src/state/read-statuses.ts";
 import { dismissAllRead, dismissStatus, markRead, upsertStatus } from "../src/state/write-status.ts";
 import { parseTmuxPanes } from "../src/tmux/list-panes.ts";
-import { buildPiMuxrCommand, buildSidebarHookArgs, buildSidebarHookCommand, buildSidebarSplitArgs, buildSidebarUnhookArgs, parseSidebarPaneInventory, parseSidebarSide, parseSidebarWindowTarget } from "../src/tmux/sidebar.ts";
+import { buildPiMuxrCommand, buildSidebarCleanupHookCommand, buildSidebarHookArgs, buildSidebarHookCommand, buildSidebarSplitArgs, buildSidebarUnhookArgs, parseSidebarCleanupWindowTarget, parseSidebarPaneInventory, parseSidebarSide, parseSidebarWindowTarget } from "../src/tmux/sidebar.ts";
 import { renderDashboardLines } from "../src/cli/dashboard-component.ts";
 import { getStateIcon } from "../src/cli/dashboard-icons.ts";
 import { renderRows } from "../src/cli/format.ts";
@@ -44,18 +44,24 @@ test("sidebar option defaults to right and accepts an explicit side", () => {
   assert.throws(() => parseSidebarSide(["--sidebar", "top"]), /accepts only/);
 });
 
-test("sidebar window target accepts tmux window IDs", () => {
+test("sidebar window targets accept tmux window IDs", () => {
   assert.equal(parseSidebarWindowTarget([]), null);
   assert.equal(parseSidebarWindowTarget(["--sidebar-window", "@12"]), "@12");
+  assert.equal(parseSidebarCleanupWindowTarget(["--sidebar-cleanup-window", "@12"]), "@12");
   assert.throws(() => parseSidebarWindowTarget(["--sidebar-window"]), /requires a tmux window ID/);
   assert.throws(() => parseSidebarWindowTarget(["--sidebar-window", "work:1"]), /requires a tmux window ID/);
+  assert.throws(() => parseSidebarCleanupWindowTarget(["--sidebar-cleanup-window", "work:1"]), /requires a tmux window ID/);
 });
 
-test("sidebar pane parser finds marked panes and one target per window", () => {
+test("sidebar pane parser finds marked panes and one non sidebar target per window", () => {
   const output = "%1\t@1\t\n%2\t@1\tleft\n%3\t@2\tright\n%4\t@2\t\n%5\t@3\tother\n";
   assert.deepEqual(parseSidebarPaneInventory(output), {
     sidebarPaneIds: ["%2", "%3"],
-    targetPaneIds: ["%1", "%3", "%5"],
+    targetPaneIds: ["%1", "%4", "%5"],
+  });
+  assert.deepEqual(parseSidebarPaneInventory("%2\t@1\tleft\n"), {
+    sidebarPaneIds: ["%2"],
+    targetPaneIds: [],
   });
 });
 
@@ -67,17 +73,24 @@ test("sidebar split places a full height pane with at most 25 percent width", ()
   assert.deepEqual(left, ["split-window", "-d", "-f", "-h", "-l", "25%", "-b", "-t", "%1", "-P", "-F", "#{pane_id}", "pi-muxr"]);
   assert.equal(buildPiMuxrCommand("/opt/node bin/node", "/tmp/pi-muxr's/index.js"), "'/opt/node bin/node' '/tmp/pi-muxr'\\''s/index.js'");
   const hookCommand = buildSidebarHookCommand("/opt/node bin/node", "/tmp/pi-muxr/index.js");
+  const cleanupHookCommand = buildSidebarCleanupHookCommand("/opt/node bin/node", "/tmp/pi-muxr/index.js");
   assert.equal(
     hookCommand,
     "run-shell ''\\''/opt/node bin/node'\\'' '\\''/tmp/pi-muxr/index.js'\\'' --sidebar-window '\\''#{window_id}'\\'''",
   );
-  assert.deepEqual(buildSidebarHookArgs(hookCommand), [
+  assert.equal(
+    cleanupHookCommand,
+    "run-shell ''\\''/opt/node bin/node'\\'' '\\''/tmp/pi-muxr/index.js'\\'' --sidebar-cleanup-window '\\''#{window_id}'\\'''",
+  );
+  assert.deepEqual(buildSidebarHookArgs(hookCommand, cleanupHookCommand), [
     ["set-hook", "-g", "after-new-window[731]", hookCommand],
     ["set-hook", "-g", "after-new-session[731]", hookCommand],
+    ["set-hook", "-g", "window-layout-changed[731]", cleanupHookCommand],
   ]);
   assert.deepEqual(buildSidebarUnhookArgs(), [
     ["set-hook", "-g", "-u", "after-new-window[731]"],
     ["set-hook", "-g", "-u", "after-new-session[731]"],
+    ["set-hook", "-g", "-u", "window-layout-changed[731]"],
   ]);
 });
 

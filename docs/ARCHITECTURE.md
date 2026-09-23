@@ -181,7 +181,7 @@ The extension uses `tmux list-panes` to discover pane metadata. The dashboard jo
 
 When the user focuses a row, `src/tmux/focus.ts` selects the pane and switches to its tmux session and window. When the CLI runs outside tmux, it reports the commands needed to focus the pane instead of pretending that the focus succeeded.
 
-The sidebar command splits every window in every tmux session and starts the same `pi-muxr` entrypoint in each new pane. The default side is right, and each pane uses at most 25 percent of the window width. A tmux pane option marks each pane. A global tmux option stores the selected side. Indexed `after-new-session` and `after-new-window` hooks add the sidebar to new sessions and windows without replacing other hooks. The next sidebar command finds the markers, closes all dashboard sidebar panes, and removes the option and hooks.
+The sidebar command splits every window in every tmux session and starts the same `pi-muxr` entrypoint in each new pane. The default side is right, and each pane uses at most 25 percent of the window width. A tmux pane option marks each pane. A global tmux option stores the selected side. Indexed `after-new-session` and `after-new-window` hooks add the sidebar to new sessions and windows without replacing other hooks. An indexed `window-layout-changed` hook closes a sidebar when it is the only pane left in its window. The next sidebar command finds the markers, closes all dashboard sidebar panes, and removes the option and hooks.
 
 The browser gateway uses a separate tmux session, named `pi-muxr-web` by default. A query parameter can select another valid session name.
 

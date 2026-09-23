@@ -10,7 +10,9 @@ export interface SidebarPaneInventory {
 
 const SIDEBAR_OPTION = "@pi-muxr-sidebar";
 const SIDEBAR_SIDE_OPTION = "@pi-muxr-sidebar-side";
-const SIDEBAR_HOOKS = ["after-new-window[731]", "after-new-session[731]"] as const;
+const SIDEBAR_CREATE_HOOKS = ["after-new-window[731]", "after-new-session[731]"] as const;
+const SIDEBAR_CLEANUP_HOOK = "window-layout-changed[731]";
+const SIDEBAR_HOOKS = [...SIDEBAR_CREATE_HOOKS, SIDEBAR_CLEANUP_HOOK] as const;
 const SIDEBAR_PANES_FORMAT = `#{pane_id}\t#{window_id}\t#{${SIDEBAR_OPTION}}`;
 
 export function parseSidebarSide(argv: string[]): SidebarSide | null {
@@ -31,7 +33,10 @@ export function parseSidebarPaneInventory(output: string): SidebarPaneInventory 
   for (const line of output.split(/\r?\n/).filter(Boolean)) {
     const [paneId, windowId, marker] = line.split("\t");
     if (!paneId || !windowId) continue;
-    if (marker === "left" || marker === "right") sidebarPaneIds.push(paneId);
+    if (marker === "left" || marker === "right") {
+      sidebarPaneIds.push(paneId);
+      continue;
+    }
     if (seenWindowIds.has(windowId)) continue;
     seenWindowIds.add(windowId);
     targetPaneIds.push(paneId);
@@ -48,12 +53,11 @@ export function buildSidebarSplitArgs(side: SidebarSide, targetPaneId: string, c
 }
 
 export function parseSidebarWindowTarget(argv: string[]): string | null {
-  const optionIndex = argv.indexOf("--sidebar-window");
-  if (optionIndex === -1) return null;
+  return parseWindowTarget(argv, "--sidebar-window");
+}
 
-  const target = argv[optionIndex + 1];
-  if (!target || !/^@\d+$/.test(target)) throw new Error("--sidebar-window requires a tmux window ID.");
-  return target;
+export function parseSidebarCleanupWindowTarget(argv: string[]): string | null {
+  return parseWindowTarget(argv, "--sidebar-cleanup-window");
 }
 
 export function buildPiMuxrCommand(execPath: string, entrypoint: string): string {
@@ -61,12 +65,16 @@ export function buildPiMuxrCommand(execPath: string, entrypoint: string): string
 }
 
 export function buildSidebarHookCommand(execPath: string, entrypoint: string): string {
-  const command = `${buildPiMuxrCommand(execPath, entrypoint)} --sidebar-window '#{window_id}'`;
-  return `run-shell ${quoteShellArgument(command)}`;
+  return buildWindowHookCommand(execPath, entrypoint, "--sidebar-window");
 }
 
-export function buildSidebarHookArgs(hookCommand: string): string[][] {
-  return SIDEBAR_HOOKS.map((hook) => ["set-hook", "-g", hook, hookCommand]);
+export function buildSidebarCleanupHookCommand(execPath: string, entrypoint: string): string {
+  return buildWindowHookCommand(execPath, entrypoint, "--sidebar-cleanup-window");
+}
+
+export function buildSidebarHookArgs(createHookCommand: string, cleanupHookCommand: string): string[][] {
+  const createHooks = SIDEBAR_CREATE_HOOKS.map((hook) => ["set-hook", "-g", hook, createHookCommand]);
+  return [...createHooks, ["set-hook", "-g", SIDEBAR_CLEANUP_HOOK, cleanupHookCommand]];
 }
 
 export function buildSidebarUnhookArgs(): string[][] {
@@ -89,7 +97,11 @@ export function toggleSidebar(side: SidebarSide): SidebarToggleResult {
   const command = buildPiMuxrCommand(process.execPath, entrypoint);
   createSidebarPanes(side, inventory.targetPaneIds, command);
   try {
-    pinSidebar(side, buildSidebarHookCommand(process.execPath, entrypoint));
+    pinSidebar(
+      side,
+      buildSidebarHookCommand(process.execPath, entrypoint),
+      buildSidebarCleanupHookCommand(process.execPath, entrypoint),
+    );
   } catch (error) {
     destroySidebarPanes(readSidebarPaneInventory().sidebarPaneIds);
     throw error;
@@ -108,6 +120,28 @@ export function ensurePinnedSidebar(targetWindowId: string): boolean {
 
   createSidebarPanes(side, [targetPaneId], buildPiMuxrCommand(process.execPath, resolveEntrypoint()));
   return true;
+}
+
+export function cleanupOrphanedSidebar(targetWindowId: string): boolean {
+  const inventory = readSidebarPaneInventory(targetWindowId);
+  if (inventory.targetPaneIds.length > 0 || inventory.sidebarPaneIds.length === 0) return false;
+
+  destroySidebarPanes(inventory.sidebarPaneIds);
+  return true;
+}
+
+function parseWindowTarget(argv: string[], option: string): string | null {
+  const optionIndex = argv.indexOf(option);
+  if (optionIndex === -1) return null;
+
+  const target = argv[optionIndex + 1];
+  if (!target || !/^@\d+$/.test(target)) throw new Error(`${option} requires a tmux window ID.`);
+  return target;
+}
+
+function buildWindowHookCommand(execPath: string, entrypoint: string, option: string): string {
+  const command = `${buildPiMuxrCommand(execPath, entrypoint)} ${option} '#{window_id}'`;
+  return `run-shell ${quoteShellArgument(command)}`;
 }
 
 function resolveEntrypoint(): string {
@@ -137,10 +171,12 @@ function readPinnedSidebarSide(): SidebarSide | null {
   }
 }
 
-function pinSidebar(side: SidebarSide, hookCommand: string): void {
+function pinSidebar(side: SidebarSide, createHookCommand: string, cleanupHookCommand: string): void {
   execFileSync("tmux", ["set-option", "-g", SIDEBAR_SIDE_OPTION, side], { stdio: "ignore" });
   try {
-    for (const args of buildSidebarHookArgs(hookCommand)) execFileSync("tmux", args, { stdio: "ignore" });
+    for (const args of buildSidebarHookArgs(createHookCommand, cleanupHookCommand)) {
+      execFileSync("tmux", args, { stdio: "ignore" });
+    }
   } catch (error) {
     removeSidebarHooks();
     execFileSync("tmux", ["set-option", "-gu", SIDEBAR_SIDE_OPTION], { stdio: "ignore" });

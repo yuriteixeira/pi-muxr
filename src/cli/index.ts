@@ -3,7 +3,7 @@ import { loadConfig } from "../config/config.js";
 import { openDatabase } from "../state/database.js";
 import { readStatuses } from "../state/read-statuses.js";
 import { listTmuxPanes } from "../tmux/list-panes.js";
-import { ensurePinnedSidebar, parseSidebarSide, parseSidebarWindowTarget, toggleSidebar } from "../tmux/sidebar.js";
+import { cleanupOrphanedSidebar, ensurePinnedSidebar, parseSidebarCleanupWindowTarget, parseSidebarSide, parseSidebarWindowTarget, toggleSidebar } from "../tmux/sidebar.js";
 import { renderRows } from "./format.js";
 import { buildDashboardRows } from "./rows.js";
 import { runWebServer } from "../web/server.js";
@@ -29,6 +29,12 @@ function main(argv: string[]): void {
   if (argv.includes("--help") || argv.includes("-h")) { console.log(HELP); return; }
 
   try {
+    const sidebarCleanupWindowTarget = parseSidebarCleanupWindowTarget(argv);
+    if (sidebarCleanupWindowTarget) {
+      cleanupOrphanedSidebar(sidebarCleanupWindowTarget);
+      return;
+    }
+
     const sidebarWindowTarget = parseSidebarWindowTarget(argv);
     if (sidebarWindowTarget) {
       ensurePinnedSidebar(sidebarWindowTarget);
