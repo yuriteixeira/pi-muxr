@@ -268,9 +268,9 @@ test("selected rows preserve the status color and show unread in its own column"
   const unselectedLine = renderDashboardLines({ rows, selected: 1, message: null, width: 90, height: 11, now: 2_000 })[1]!;
   const readLine = renderDashboardLines({ rows: readRows, selected: 1, message: null, width: 90, height: 11, now: 2_000 })[1]!;
 
-  assert.match(selectedLine, /\x1b\[94m❯\x1b\[39m \x1b\[92m DONE\x1b\[39m {5}\x1b\[93m●\x1b\[39m \x1b\[96mmain/);
-  assert.match(unselectedLine, /  \x1b\[92m DONE\x1b\[39m {5}\x1b\[93m●\x1b\[39m \x1b\[96mmain/);
-  assert.match(readLine, /  \x1b\[92m DONE\x1b\[39m {7}\x1b\[96mmain/);
+  assert.match(selectedLine, /\x1b\[94m❯\x1b\[39m \x1b\[92m DONE\x1b\[39m \x1b\[93m●\x1b\[39m \x1b\[96mmain/);
+  assert.match(unselectedLine, /  \x1b\[92m DONE\x1b\[39m \x1b\[93m●\x1b\[39m \x1b\[96mmain/);
+  assert.match(readLine, /  \x1b\[92m DONE\x1b\[39m {3}\x1b\[96mmain/);
   assert.doesNotMatch(readLine, /●/);
 });
 
