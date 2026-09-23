@@ -1,0 +1,7 @@
+if ! git diff --cached --name-only | grep -Eq '^(src/|pnpm-lock\.yaml$)'; then
+  echo "Skipping build and tests because no source or lockfile changes are staged."
+  exit 0
+fi
+
+pnpm build
+pnpm test

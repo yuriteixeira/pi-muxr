@@ -30,6 +30,9 @@ importers:
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
+      husky:
+        specifier: ^9.1.7
+        version: 9.1.7
       tsx:
         specifier: latest
         version: 4.23.15
@@ -345,6 +348,11 @@ packages:
     resolution: {integrity: sha512-QRbvDIbx6YklUe6RxeTeleMR0yv3cYH6PsPZHcnVn7xv7zO1BHN8r0XETu8n6Ye3Q+ahtSarc3WgtNWmehIBfA==}
     engines: {node: '>=18'}
 
+  husky@9.1.7:
+    resolution: {integrity: sha512-5gs5ytaNjBrh5Ow3zrvdUUY+0VxIuWVL4i9irt6friV+BqdCfmV11CQTWMiBYWHbXhco+J1kHfTOUkePhCDvMA==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   marked@18.0.11:
     resolution: {integrity: sha512-HnslJfsZkRPBDJRHvVtAaWlZHEpSu7u8LgQuJCELjRKuWR+hpq4A7sLq3p8HaI9ypVoXDXxV34CsQJEe1+J5Aw==}
     engines: {node: '>= 20'}
@@ -571,6 +579,8 @@ snapshots:
     optional: true
 
   get-east-asian-width@1.6.0: {}
+
+  husky@9.1.7: {}
 
   marked@18.0.11: {}
 

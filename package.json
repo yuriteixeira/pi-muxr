@@ -51,7 +51,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test --experimental-sqlite --import tsx test/*.test.ts",
     "prepack": "pnpm build",
-    "prepublishOnly": "pnpm typecheck && pnpm test"
+    "prepublishOnly": "pnpm typecheck && pnpm test",
+    "prepare": "husky"
   },
   "dependencies": {
     "@earendil-works/pi-tui": "^0.87.0",
@@ -63,6 +64,7 @@
   "devDependencies": {
     "@types/node": "latest",
     "@types/ws": "^8.18.1",
+    "husky": "^9.1.7",
     "tsx": "latest",
     "typescript": "latest"
   },
