@@ -21,6 +21,7 @@ import { DEFAULT_DASHBOARD_THEME } from "../src/cli/dashboard-theme.ts";
 import { buildDashboardRows } from "../src/cli/rows.ts";
 import { formatToolName, normalizePrompt, resolveAgentEndStatus, summarizeAskUserRequest, summarizeAskUserResult, summarizeToolCall } from "../src/extension/pi-muxr.ts";
 import { shouldRingTerminalBell } from "../src/notifications/terminal.ts";
+import { VERSION } from "../src/version.ts";
 
 test("actionable/read/dismissed calculation", () => {
   const status = { state: "DONE", lastEventAt: 10 } as const;
@@ -235,6 +236,15 @@ test("modern dashboard render lines fit the provided width", () => {
     assert.ok(lines.length <= 12);
     assert.ok(lines.every((line) => visibleWidth(line) <= width), `line exceeded width ${width}: ${lines.join("\n")}`);
   }
+});
+
+test("dashboard shows the package version at the right of the status bar", () => {
+  const lines = renderDashboardLines({ rows: [], selected: 0, message: null, width: 90, height: 8, now: 2_000 });
+  const statusBar = lines.find((line) => line.includes("select"));
+  const plainStatusBar = statusBar?.replace(/\x1b\[[0-9;]*m/g, "");
+
+  assert.ok(plainStatusBar);
+  assert.equal(plainStatusBar.endsWith(`v${VERSION}│`), true);
 });
 
 test("dashboard hides the status section when the terminal is too small", () => {

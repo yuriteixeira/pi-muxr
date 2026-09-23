@@ -1,5 +1,6 @@
 import { Key, matchesKey, truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
 import type { DashboardRow } from "../domain/status.js";
+import { VERSION } from "../version.js";
 import { getStateVisual } from "./dashboard-icons.js";
 import { chooseDashboardLayout, fitCell, getVisibleRowRange, padToWidth, toRowText, type DashboardLayoutMode } from "./dashboard-layout.js";
 import { DEFAULT_DASHBOARD_THEME, type DashboardTheme, type StyleFn } from "./dashboard-theme.js";
@@ -169,7 +170,8 @@ function renderHeader(width: number, theme: DashboardTheme): string {
 }
 
 function statusSectionFits(rows: DashboardRow[], mode: DashboardLayoutMode, width: number, theme: DashboardTheme): boolean {
-  const contentWidth = Math.max(visibleWidth(renderStats(rows, mode, theme)), visibleWidth(renderFooter(theme)));
+  const footerWidth = visibleWidth(renderFooterContent(theme)) + 2 + visibleWidth(`v${VERSION}`);
+  const contentWidth = Math.max(visibleWidth(renderStats(rows, mode, theme)), footerWidth);
   return width >= contentWidth + 2;
 }
 
@@ -178,7 +180,7 @@ function renderStatusSection(rows: DashboardRow[], mode: DashboardLayoutMode, wi
     renderSectionTop("status", width, theme),
     frameLine(renderStats(rows, mode, theme), width, theme, theme.surface),
     renderSeparator(width, theme),
-    frameLine(renderFooter(theme), width, theme, theme.surface),
+    frameLine(renderFooter(width, theme), width, theme, theme.surface),
     renderBottom(width, theme),
   ];
 }
@@ -191,7 +193,14 @@ function renderStats(rows: DashboardRow[], mode: DashboardLayoutMode, theme: Das
   return ` ${theme.warning("●")} ${unread} unread  ${theme.accent("◆")} ${actionable} actionable  ${theme.stale("󰅖")} ${stale} stale  ${theme.muted(layout)}`;
 }
 
-function renderFooter(theme: DashboardTheme): string {
+function renderFooter(width: number, theme: DashboardTheme): string {
+  const content = renderFooterContent(theme);
+  const version = theme.muted(`v${VERSION}`);
+  const gapWidth = Math.max(2, width - 2 - visibleWidth(content) - visibleWidth(version));
+  return `${content}${" ".repeat(gapWidth)}${version}`;
+}
+
+function renderFooterContent(theme: DashboardTheme): string {
   return ` ${theme.accent("↑/↓ j/k")} select  ${theme.accent("↵")} focus/read  ${theme.accent("d")} dismiss  ${theme.accent("D")} dismiss read  ${theme.accent("r")} refresh  ${theme.accent("q")} quit`;
 }
 

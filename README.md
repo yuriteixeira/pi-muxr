@@ -51,6 +51,9 @@ pi-muxr --quit-on-select
 # Output Pi sessions to standard output
 pi-muxr --list
 
+# Print the installed version
+pi-muxr --version
+
 # Start the web app with a terminal emulator
 # so you can continue your work from another device
 pi-muxr --web

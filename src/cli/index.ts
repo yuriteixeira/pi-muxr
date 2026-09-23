@@ -8,6 +8,7 @@ import { renderRows } from "./format.js";
 import { buildDashboardRows } from "./rows.js";
 import { runWebServer } from "../web/server.js";
 import { runDashboard } from "./dashboard.js";
+import { VERSION } from "../version.js";
 
 const HELP = `pi-muxr
 
@@ -18,6 +19,7 @@ Usage:
   pi-muxr --config          Print resolved config
   pi-muxr --web             Serve browser terminal for a pi-muxr tmux session
   pi-muxr --quit-on-select  Exit after Enter focuses the selected row
+  pi-muxr --version         Show the installed version
   pi-muxr --help            Show this help
 
 Keys: ↑/↓ or j/k select, Enter focus/read, d dismiss, D dismiss all read, r refresh, q quit.
@@ -27,6 +29,7 @@ Web: set HOST/PORT to change the bind address (defaults to 127.0.0.1:3042).
 
 function main(argv: string[]): void {
   if (argv.includes("--help") || argv.includes("-h")) { console.log(HELP); return; }
+  if (argv.includes("--version")) { console.log(VERSION); return; }
 
   try {
     const sidebarCleanupWindowTarget = parseSidebarCleanupWindowTarget(argv);
