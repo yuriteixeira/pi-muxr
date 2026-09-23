@@ -19,7 +19,7 @@ import { renderRows } from "../src/cli/format.ts";
 import { chooseDashboardLayout } from "../src/cli/dashboard-layout.ts";
 import { DEFAULT_DASHBOARD_THEME } from "../src/cli/dashboard-theme.ts";
 import { buildDashboardRows } from "../src/cli/rows.ts";
-import { formatToolName, resolveAgentEndStatus, summarizeAskUserRequest, summarizeAskUserResult, summarizeToolCall } from "../src/extension/pi-muxr.ts";
+import { formatToolName, normalizePrompt, resolveAgentEndStatus, summarizeAskUserRequest, summarizeAskUserResult, summarizeToolCall } from "../src/extension/pi-muxr.ts";
 import { shouldRingTerminalBell } from "../src/notifications/terminal.ts";
 
 test("actionable/read/dismissed calculation", () => {
@@ -98,9 +98,10 @@ test("sidebar split places a full height pane with at most 25 percent width", ()
 
 test("sqlite status markers", () => {
   const db = openDatabase(join(mkdtempSync(join(tmpdir(), "pi-muxr-")), "db.sqlite"));
-  const status: PiMuxrStatus = { id: "1", paneId: "%1", tmuxSession: "s", tmuxWindow: "w", tmuxWindowIndex: "0", pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "DONE", severity: "medium", summary: "done", lastEventAt: 100, heartbeatAt: 100 };
+  const status: PiMuxrStatus = { id: "1", paneId: "%1", tmuxSession: "s", tmuxWindow: "w", tmuxWindowIndex: "0", pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "DONE", severity: "medium", summary: "done", lastPrompt: "x".repeat(130), lastEventAt: 100, heartbeatAt: 100 };
   upsertStatus(db, status);
   markRead(db, "1", 100);
+  assert.equal(readStatuses(db)[0]?.lastPrompt, `${"x".repeat(119)}…`);
   assert.equal(readStatuses(db)[0]?.readUntilEventAt, 100);
   assert.equal(dismissAllRead(db), 1);
   assert.equal(readStatuses(db)[0]?.dismissedUntilEventAt, 100);
@@ -119,6 +120,20 @@ test("database applies each ordered migration once", () => {
   const columns = db.prepare("PRAGMA table_info(migration_probe)").all() as Array<{ name: string }>;
   const version = db.prepare("PRAGMA user_version").get() as { user_version: number };
   assert.ok(columns.some((column) => column.name === "value"));
+  assert.equal(version.user_version, 1);
+  db.close();
+});
+
+test("last prompt migration updates an existing sessions table", () => {
+  const databasePath = join(mkdtempSync(join(tmpdir(), "pi-muxr-")), "db.sqlite");
+  const legacyDb = new DatabaseSync(databasePath);
+  legacyDb.exec("CREATE TABLE sessions (id TEXT PRIMARY KEY)");
+  legacyDb.close();
+
+  const db = openDatabase(databasePath);
+  const columns = db.prepare("PRAGMA table_info(sessions)").all() as Array<{ name: string }>;
+  const version = db.prepare("PRAGMA user_version").get() as { user_version: number };
+  assert.ok(columns.some((column) => column.name === "last_prompt"));
   assert.equal(version.user_version, 1);
   db.close();
 });
@@ -150,6 +165,11 @@ test("extension wraps tool names in square brackets without a trailing colon", (
   assert.equal(summarizeAskUserRequest({}), "[ask_user] waiting for input");
   assert.equal(summarizeAskUserResult({ details: { cancelled: true } }), "[ask_user] cancelled");
   assert.equal(summarizeAskUserResult({ details: { response: { kind: "selection", selections: ["Yes"] } } }), "[ask_user] answered: Yes");
+});
+
+test("extension normalizes a multiline user prompt for one table cell", () => {
+  assert.equal(normalizePrompt("  fix the tests\nthen build  "), "fix the tests then build");
+  assert.equal(normalizePrompt("  \n "), null);
 });
 
 test("extension reports DONE when agent recovered from a tool error", () => {
@@ -244,15 +264,18 @@ test("selected rows preserve the status color and show unread in its own column"
   assert.doesNotMatch(readLine, /●/);
 });
 
-test("dashboard tables show the root path beside the session without the tmux pane path", () => {
-  const status: PiMuxrStatus = { id: "1", paneId: "%1", tmuxSession: "main", tmuxWindow: "api", tmuxWindowIndex: "2", pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "ASK", severity: "high", summary: "Waiting", lastEventAt: 1_000, heartbeatAt: 1_000 };
+test("dashboard tables show the last prompt fourth and the root path last", () => {
+  const status: PiMuxrStatus = { id: "1", paneId: "%1", tmuxSession: "main", tmuxWindow: "api", tmuxWindowIndex: "2", pid: 1, cwd: "/tmp/project", piSessionFile: null, model: null, state: "ASK", severity: "high", summary: "Waiting", lastPrompt: "Fix login flow", lastEventAt: 1_000, heartbeatAt: 1_000 };
   const rows = buildDashboardRows([status], [parseTmuxPanes("main\t2\tapi\t%1\t1\tbash\ttitle\t123\n")[0]!], DEFAULT_CONFIG, 2_000);
   const interactiveTable = renderDashboardLines({ rows, selected: 0, message: null, width: 130, height: 11, now: 2_000 }).join("\n");
   const plainTable = renderRows(rows, 0, 2_000);
 
   for (const table of [interactiveTable, plainTable]) {
-    assert.match(table, /main/);
-    assert.match(table, /\/tmp\/project/);
+    assert.ok(table.indexOf("main") < table.indexOf("Fix login flow"));
+    assert.ok(table.indexOf("Fix login flow") < table.indexOf("Waiting"));
+    assert.ok(table.indexOf("Waiting") < table.indexOf("/tmp/project"));
     assert.doesNotMatch(table, /main:2:api\.%1/);
   }
+  assert.ok(plainTable.indexOf("LAST PROMPT") < plainTable.indexOf("LAST EVENT"));
+  assert.ok(plainTable.indexOf("LAST EVENT") < plainTable.indexOf("ROOT PATH"));
 });

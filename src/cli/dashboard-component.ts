@@ -140,25 +140,27 @@ function renderTableRow(row: DashboardRow, selected: boolean, mode: DashboardLay
   const summaryStyle = row.unread && row.actionable ? theme.bright : theme.text;
   const innerWidth = Math.max(0, width);
   const columns = mode === "wide"
-    ? { session: 16, project: 24, age: 6 }
+    ? { session: 16, prompt: 24, rootPath: 24, age: 6 }
     : mode === "medium"
-      ? { session: 14, project: 22, age: 6 }
+      ? { session: 14, prompt: 20, rootPath: 20, age: 6 }
       : innerWidth >= 46
-        ? { session: 12, project: 18, age: 0 }
-        : { session: 10, project: 14, age: 0 };
+        ? { session: 10, prompt: 14, rootPath: 14, age: 0 }
+        : { session: 8, prompt: 10, rootPath: 10, age: 0 };
   const statusWidth = 12;
   const unreadWidth = 1;
-  const fixedWidth = statusWidth + unreadWidth + columns.session + columns.project + columns.age;
-  const separatorWidth = [statusWidth, unreadWidth, columns.session, columns.project, columns.age].filter((value) => value > 0).length - 1;
-  const summaryWidth = Math.max(0, innerWidth - fixedWidth - separatorWidth);
+  const fixedWidths = [statusWidth, unreadWidth, columns.session, columns.prompt, columns.age, columns.rootPath].filter((value) => value > 0);
+  const fixedWidth = fixedWidths.reduce((total, value) => total + value, 0);
+  const fixedSeparatorWidth = fixedWidths.length - 1;
+  const summaryWidth = Math.max(0, innerWidth - fixedWidth - fixedSeparatorWidth - 1);
   const cells = [
     padCell(state, statusWidth),
     padCell(unreadMarker, unreadWidth),
     padCell(theme.info(text.session), columns.session),
-    padCell(theme.muted(fitPlainCellEnd(text.project, columns.project)), columns.project),
+    padCell(theme.text(fitPlainCell(text.lastPrompt, columns.prompt)), columns.prompt),
   ];
   if (columns.age > 0) cells.push(padCell(theme.muted(text.age), columns.age));
   if (summaryWidth > 0) cells.push(summaryStyle(fitPlainCell(text.summary, summaryWidth)));
+  cells.push(padCell(theme.muted(fitPlainCellEnd(text.rootPath, columns.rootPath)), columns.rootPath));
   return cells.join(" ");
 }
 

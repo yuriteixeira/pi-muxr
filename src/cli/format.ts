@@ -2,7 +2,7 @@ import { relative } from "node:path";
 import type { DashboardRow } from "../domain/status.js";
 
 export function renderRows(rows: DashboardRow[], selected = 0, now = Date.now()): string {
-  const lines = ["STATE   AGE   SESSION          PROJECT                LAST EVENT"];
+  const lines = ["STATE   AGE   SESSION          LAST PROMPT                    LAST EVENT               ROOT PATH"];
   rows.forEach((row, index) => lines.push(formatRow(row, index === selected, now)));
   if (rows.length === 0) lines.push("No pi sessions found.");
   return lines.join("\n");
@@ -13,9 +13,11 @@ export function formatRow(row: DashboardRow, selected: boolean, now = Date.now()
   const state = row.displayState.padEnd(6);
   const age = formatAge(now - row.lastEventAt).padEnd(5);
   const session = (row.pane?.sessionName ?? row.tmuxSession ?? "?").padEnd(16).slice(0, 16);
-  const project = shortenPath(row.cwd).padEnd(22).slice(0, 22);
+  const lastPrompt = (row.lastPrompt ?? "").padEnd(30).slice(0, 30);
+  const summary = row.summary.padEnd(24).slice(0, 24);
+  const rootPath = shortenPath(row.cwd);
   const unread = row.unread ? "*" : " ";
-  return `${marker}${unread}${state} ${age} ${session} ${project} ${row.summary}`;
+  return `${marker}${unread}${state} ${age} ${session} ${lastPrompt} ${summary} ${rootPath}`;
 }
 
 export function formatAge(ms: number): string {

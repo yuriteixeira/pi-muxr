@@ -4,10 +4,12 @@ import type { Database } from "./database.js";
 
 export type StatusInput = Omit<PiMuxrStatus, "readUntilEventAt" | "acknowledgedAt" | "dismissedUntilEventAt" | "lastNotifiedEventAt"> & Partial<Pick<PiMuxrStatus, "readUntilEventAt" | "acknowledgedAt" | "dismissedUntilEventAt" | "lastNotifiedEventAt">>;
 
+const LAST_PROMPT_MAX_LENGTH = 120;
+
 export function upsertStatus(db: Database, status: StatusInput): void {
   db.prepare(`
-    INSERT INTO sessions (id, pane_id, tmux_session, tmux_window, tmux_window_index, pid, cwd, pi_session_file, model, state, severity, summary, last_event_at, heartbeat_at, read_until_event_at, acknowledged_at, dismissed_until_event_at, last_notified_event_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO sessions (id, pane_id, tmux_session, tmux_window, tmux_window_index, pid, cwd, pi_session_file, model, state, severity, summary, last_prompt, last_event_at, heartbeat_at, read_until_event_at, acknowledged_at, dismissed_until_event_at, last_notified_event_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       pane_id=excluded.pane_id,
       tmux_session=excluded.tmux_session,
@@ -20,13 +22,14 @@ export function upsertStatus(db: Database, status: StatusInput): void {
       state=excluded.state,
       severity=excluded.severity,
       summary=excluded.summary,
+      last_prompt=excluded.last_prompt,
       last_event_at=excluded.last_event_at,
       heartbeat_at=excluded.heartbeat_at,
       read_until_event_at=COALESCE(sessions.read_until_event_at, excluded.read_until_event_at),
       acknowledged_at=COALESCE(sessions.acknowledged_at, excluded.acknowledged_at),
       dismissed_until_event_at=COALESCE(sessions.dismissed_until_event_at, excluded.dismissed_until_event_at),
       last_notified_event_at=COALESCE(sessions.last_notified_event_at, excluded.last_notified_event_at)
-  `).run(status.id, status.paneId, status.tmuxSession, status.tmuxWindow, status.tmuxWindowIndex, status.pid, status.cwd, status.piSessionFile, status.model, status.state, status.severity, truncate(status.summary, 500), status.lastEventAt, status.heartbeatAt, status.readUntilEventAt ?? null, status.acknowledgedAt ?? null, status.dismissedUntilEventAt ?? null, status.lastNotifiedEventAt ?? null);
+  `).run(status.id, status.paneId, status.tmuxSession, status.tmuxWindow, status.tmuxWindowIndex, status.pid, status.cwd, status.piSessionFile, status.model, status.state, status.severity, truncate(status.summary, 500), truncateNullable(status.lastPrompt, LAST_PROMPT_MAX_LENGTH), status.lastEventAt, status.heartbeatAt, status.readUntilEventAt ?? null, status.acknowledgedAt ?? null, status.dismissedUntilEventAt ?? null, status.lastNotifiedEventAt ?? null);
 }
 
 export function removeStatus(db: Database, id: string): void {
@@ -35,6 +38,10 @@ export function removeStatus(db: Database, id: string): void {
 
 export function updateHeartbeat(db: Database, id: string, heartbeatAt = Date.now()): void {
   db.prepare("UPDATE sessions SET heartbeat_at = ? WHERE id = ?").run(heartbeatAt, id);
+}
+
+export function updateLastPrompt(db: Database, id: string, lastPrompt: string): void {
+  db.prepare("UPDATE sessions SET last_prompt = ? WHERE id = ?").run(truncate(lastPrompt, LAST_PROMPT_MAX_LENGTH), id);
 }
 
 export function markRead(db: Database, id: string, lastEventAt: number): void {
@@ -62,6 +69,10 @@ export function dismissAllRead(db: Database, actionableStatesOrAt: PiMuxrState[]
 
 export function markNotified(db: Database, id: string, lastEventAt: number): void {
   db.prepare("UPDATE sessions SET last_notified_event_at = ? WHERE id = ?").run(lastEventAt, id);
+}
+
+function truncateNullable(value: string | null | undefined, max: number): string | null {
+  return value ? truncate(value, max) : null;
 }
 
 function truncate(value: string, max: number): string {

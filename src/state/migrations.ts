@@ -5,7 +5,12 @@ export interface DatabaseMigration {
   apply(db: Database): void;
 }
 
-const DATABASE_MIGRATIONS: DatabaseMigration[] = [];
+const DATABASE_MIGRATIONS: DatabaseMigration[] = [
+  {
+    version: 1,
+    apply: addLastPromptColumn,
+  },
+];
 
 export function applyDatabaseMigrations(db: Database, migrations: DatabaseMigration[] = DATABASE_MIGRATIONS): void {
   validateMigrationOrder(migrations);
@@ -25,6 +30,16 @@ export function applyDatabaseMigrations(db: Database, migrations: DatabaseMigrat
     db.exec("ROLLBACK");
     throw error;
   }
+}
+
+function addLastPromptColumn(db: Database): void {
+  if (hasColumn(db, "sessions", "last_prompt")) return;
+  db.exec("ALTER TABLE sessions ADD COLUMN last_prompt TEXT");
+}
+
+function hasColumn(db: Database, table: string, column: string): boolean {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  return columns.some((candidate) => candidate.name === column);
 }
 
 function validateMigrationOrder(migrations: DatabaseMigration[]): void {

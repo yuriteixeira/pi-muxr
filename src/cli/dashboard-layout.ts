@@ -7,7 +7,8 @@ export type DashboardLayoutMode = "wide" | "medium" | "narrow";
 
 export interface RowText {
   age: string;
-  project: string;
+  lastPrompt: string;
+  rootPath: string;
   session: string;
   summary: string;
 }
@@ -38,7 +39,8 @@ export function getVisibleRowRange(totalRows: number, selected: number, maxRows:
 export function toRowText(row: DashboardRow, now = Date.now()): RowText {
   return {
     age: shouldRunRowTimer(row) ? formatAge(now - row.lastEventAt) : "",
-    project: shortenPath(row.cwd),
+    lastPrompt: row.lastPrompt ?? "",
+    rootPath: shortenPath(row.cwd),
     session: row.pane?.sessionName ?? row.tmuxSession ?? "?",
     summary: row.summary,
   };

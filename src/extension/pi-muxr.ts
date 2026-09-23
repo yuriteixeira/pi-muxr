@@ -5,7 +5,7 @@ import { notifyStatus } from "../notifications/desktop.js";
 import { ringTerminalBell, shouldRingTerminalBell } from "../notifications/terminal.js";
 import { openDatabase, type Database } from "../state/database.js";
 import { hasFreshDashboardPresence } from "../state/dashboard-presence.js";
-import { markNotified, removeStatus, updateHeartbeat, upsertStatus } from "../state/write-status.js";
+import { markNotified, removeStatus, updateHeartbeat, updateLastPrompt, upsertStatus } from "../state/write-status.js";
 import { listTmuxPanes } from "../tmux/list-panes.js";
 
 interface RuntimeState {
@@ -15,6 +15,7 @@ interface RuntimeState {
   heartbeatTimer: NodeJS.Timeout | null;
   lastError: string | null;
   model: string | null;
+  lastPrompt: string | null;
   handledToolCallIds: Set<string>;
   hasToolPreviewInPrompt: boolean;
 }
@@ -25,12 +26,13 @@ interface NotificationSnapshot {
 }
 
 export default function piMuxrExtension(pi: any): void {
-  const runtime: RuntimeState = { config: loadConfig(), db: null, id: null, heartbeatTimer: null, lastError: null, model: null, handledToolCallIds: new Set(), hasToolPreviewInPrompt: false };
+  const runtime: RuntimeState = { config: loadConfig(), db: null, id: null, heartbeatTimer: null, lastError: null, model: null, lastPrompt: null, handledToolCallIds: new Set(), hasToolPreviewInPrompt: false };
 
   pi.on("session_start", async (_event: unknown, ctx: any) => {
     runtime.config = loadConfig();
     runtime.db = openDatabase(runtime.config.databasePath);
     runtime.model = formatModel(ctx.model);
+    runtime.lastPrompt = null;
     runtime.id = createSessionId(ctx);
     writeState(runtime, ctx, "IDLE", "low", startSummary(ctx));
     runtime.heartbeatTimer = setInterval(() => writeHeartbeat(runtime, ctx), runtime.config.heartbeatIntervalMs);
@@ -41,6 +43,7 @@ export default function piMuxrExtension(pi: any): void {
     writeState(runtime, ctx, "IDLE", "low", `model: ${runtime.model}`);
   });
 
+  pi.on("input", async (event: any) => captureLastPrompt(runtime, event.text));
   pi.on("agent_start", async (_event: unknown, ctx: any) => {
     runtime.lastError = null;
     runtime.handledToolCallIds.clear();
@@ -175,9 +178,23 @@ function baseStatus(runtime: RuntimeState, ctx: any, pane: TmuxPane | null, stat
     state,
     severity,
     summary,
+    lastPrompt: runtime.lastPrompt,
     lastEventAt: event ? now : now,
     heartbeatAt: now,
   };
+}
+
+function captureLastPrompt(runtime: RuntimeState, prompt: unknown): void {
+  const lastPrompt = normalizePrompt(prompt);
+  if (!lastPrompt) return;
+  runtime.lastPrompt = lastPrompt;
+  if (runtime.db && runtime.id) updateLastPrompt(runtime.db, runtime.id, lastPrompt);
+}
+
+export function normalizePrompt(prompt: unknown): string | null {
+  if (typeof prompt !== "string") return null;
+  const normalized = prompt.replace(/\s+/g, " ").trim();
+  return normalized || null;
 }
 
 function maybeRingBell(runtime: RuntimeState, status: PiMuxrStatus, snapshot: NotificationSnapshot | null): void {

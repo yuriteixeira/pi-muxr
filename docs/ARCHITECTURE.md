@@ -68,6 +68,7 @@ Important fields include:
 - `state`: Current Pi state.
 - `severity`: `low`, `medium`, or `high`.
 - `summary`: Short description of the latest event.
+- `last_prompt`: Latest user prompt, normalized for display.
 - `last_event_at`: Time of the latest meaningful event.
 - `heartbeat_at`: Time of the latest process heartbeat.
 - Read, dismissal, and notification markers.
@@ -103,6 +104,9 @@ session_start
     -> publish IDLE state
     -> start heartbeat timer
 
+input
+    -> store the submitted user prompt directly in the current session row
+
 agent_start / turn_start
     -> publish RUN state
 
@@ -126,7 +130,7 @@ session_shutdown
 
 The extension also refreshes tmux information when it writes a state update. It uses `TMUX_PANE` and tmux pane discovery to associate a Pi process with its owning pane. When the process enters a configured actionable state, the extension emits one terminal bell. Because the bell comes from the Pi process, tmux assigns the alert to the window that owns the Pi pane.
 
-Summaries are truncated before storage. This keeps the database small and limits the amount of event data retained for display.
+Summaries are truncated before storage. User prompts are normalized to one line and limited to 120 characters, which provides enough text for the dashboard while limiting retained prompt data. This keeps the database small and limits the amount of prompt data retained.
 
 ## Heartbeats and stale sessions
 

@@ -1,6 +1,6 @@
 {
   "name": "@yuriteixeira/pi-muxr",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "tmux dashboard for Pi coding sessions",
   "type": "module",
   "packageManager": "pnpm@11.0.0-dev.1005",
