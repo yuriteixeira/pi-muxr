@@ -1,5 +1,8 @@
 - [ ] feat: daemon that will received notification's click and activate the right tmux pane
 - [ ] fix: columns should have fixed width
+- [ ] fix: more space for session and last prompt in "narrow" mode.
+- [ ] feat: status bar for "narrow" mode
 - [ ] fix: "no pi sessions" msg is misleading (since you can dismiss... maybe we should have a "dismissed" panel)
+- [ ] (maybe, reflect) feat: mark as read instead of dismiss
 - [ ] chore: focused tests (being siblings with the module they are testing)
 - [ ] refactor: review sidebar.ts (eg: can call `build*Command` functions directly instead of passing them as params)
