@@ -511,6 +511,36 @@ test("selected rows preserve the status color and show unread in its own column"
   assert.doesNotMatch(readLine, /●/);
 });
 
+test("dashboard last prompt uses the space left by fixed width columns", () => {
+  const status: PiMuxrStatus = {
+    id: "1",
+    paneId: null,
+    tmuxSession: "main",
+    tmuxWindow: null,
+    tmuxWindowIndex: null,
+    pid: 1,
+    cwd: "/tmp/project",
+    piSessionFile: null,
+    model: null,
+    state: "DONE",
+    severity: "medium",
+    summary: "Done",
+    lastPrompt: "Fix login flow",
+    lastEventAt: 1_000,
+    heartbeatAt: 1_000,
+  };
+  const rows = buildDashboardRows([status], [], DEFAULT_CONFIG, 2_000);
+
+  for (const width of [130, 140]) {
+    const line = renderDashboardLines({ rows, selected: 0, message: null, width, height: 11, now: 2_000 })[1]!;
+    const plainLine = line.replace(/\x1b\[[0-9;]*m/g, "");
+
+    assert.equal(plainLine.indexOf("Done"), width - 50);
+    assert.equal(plainLine.indexOf("/tmp/project"), width - 25);
+    assert.equal(visibleWidth(plainLine), width);
+  }
+});
+
 test("dashboard tables show the last prompt fourth and the root path last", () => {
   const status: PiMuxrStatus = {
     id: "1",

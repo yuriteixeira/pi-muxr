@@ -192,26 +192,32 @@ function renderTableRow(
   const innerWidth = Math.max(0, width);
   const columns =
     mode === "wide"
-      ? { session: 16, prompt: 24, rootPath: 24, age: 6 }
+      ? { session: 16, summary: 24, rootPath: 24, age: 6 }
       : mode === "medium"
-        ? { session: 12, prompt: 20, rootPath: 20, age: 6 }
-        : { session: 8, prompt: 10, rootPath: 10, age: 0 };
+        ? { session: 12, summary: 20, rootPath: 20, age: 6 }
+        : { session: 8, summary: 10, rootPath: 10, age: 0 };
   const statusWidth = 8;
   const unreadWidth = 1;
-  const fixedWidths = [statusWidth, unreadWidth, columns.session, columns.prompt, columns.age, columns.rootPath].filter(
-    (value) => value > 0,
-  );
+  const fixedWidths = [
+    statusWidth,
+    unreadWidth,
+    columns.session,
+    columns.age,
+    columns.summary,
+    columns.rootPath,
+  ].filter((value) => value > 0);
   const fixedWidth = fixedWidths.reduce((total, value) => total + value, 0);
   const fixedSeparatorWidth = fixedWidths.length - 1;
-  const summaryWidth = Math.max(0, innerWidth - fixedWidth - fixedSeparatorWidth - 1);
+  const lastPromptWidth = Math.max(0, innerWidth - fixedWidth - fixedSeparatorWidth - 1);
   const cells = [
     padCell(state, statusWidth),
     padCell(unreadMarker, unreadWidth),
     padCell(theme.info(text.session), columns.session),
-    padCell(theme.text(fitPlainCell(text.lastPrompt, columns.prompt)), columns.prompt),
   ];
+  if (lastPromptWidth > 0)
+    cells.push(padCell(theme.text(fitPlainCell(text.lastPrompt, lastPromptWidth)), lastPromptWidth));
   if (columns.age > 0) cells.push(padCell(theme.muted(text.age), columns.age));
-  if (summaryWidth > 0) cells.push(summaryStyle(fitPlainCell(text.summary, summaryWidth)));
+  cells.push(padCell(summaryStyle(fitPlainCell(text.summary, columns.summary)), columns.summary));
   cells.push(padCell(theme.muted(fitPlainCellEnd(text.rootPath, columns.rootPath)), columns.rootPath));
   return cells.join(" ");
 }
