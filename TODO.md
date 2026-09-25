@@ -1,6 +1,8 @@
 # TODO
 
 - [ ] tests: full review (very weird string assertions, see column width change commit)
+- [ ] fix(web): terminal colors are off (different from a regular terminal)
+- [ ] fix(web): should it just notify? think about UX
 
 # Next
 
