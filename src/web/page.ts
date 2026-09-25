@@ -23,7 +23,6 @@ export const WEB_PAGE = `<!doctype html>
     .toasts { bottom: 1rem; display: grid; gap: 0.75rem; max-width: min(420px, calc(100vw - 2rem)); position: fixed; right: 1rem; z-index: 10; }
     .toast { background: #1f2937; border: 1px solid #475569; border-left: 4px solid #f59e0b; border-radius: 10px; box-shadow: 0 10px 35px #0008; padding: 0.8rem; }
     .toast strong { display: block; margin-bottom: 0.25rem; }
-    .toast small { color: #cbd5e1; display: block; margin-top: 0.35rem; }
     .error { color: #fecaca; }
   </style>
 </head>
@@ -94,10 +93,9 @@ export const WEB_PAGE = `<!doctype html>
     function showAttention(message) {
       const toast = document.createElement('div');
       toast.className = 'toast';
-      toast.innerHTML = '<strong></strong><div></div><small></small>';
+      toast.innerHTML = '<strong></strong><div></div>';
       toast.querySelector('strong').textContent = message.title;
       toast.querySelector('div').textContent = message.body;
-      toast.querySelector('small').textContent = formatLocation(message.row);
       toastsElement.prepend(toast);
       setTimeout(() => toast.remove(), 12000);
       if (Notification.permission === 'granted') new Notification(message.title, { body: message.body });
@@ -146,9 +144,6 @@ export const WEB_PAGE = `<!doctype html>
       if (Notification.permission === 'denied') { notificationsButton.disabled = true; notificationsButton.textContent = 'Notifications blocked'; }
     }
 
-    function formatLocation(row) {
-      return [row.tmuxSession || '?', row.tmuxWindowIndex || '?', row.paneId || '?'].join(':');
-    }
   </script>
 </body>
 </html>`;

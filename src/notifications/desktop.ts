@@ -1,10 +1,9 @@
 import { execFileSync } from "node:child_process";
 import type { PiMuxrStatus } from "../domain/status.js";
-import { projectName } from "../domain/status.js";
+import { formatNotification } from "./format.js";
 
 export function notifyStatus(status: PiMuxrStatus): void {
-  const title = `pi-muxr: ${status.state} in ${projectName(status.cwd)}`;
-  const body = `${status.summary}\n${formatLocation(status)}`;
+  const { title, body } = formatNotification(status);
   tryNotify(title, body);
 }
 
@@ -24,11 +23,4 @@ function tryNotify(title: string, body: string): void {
       execFileSync("notify-send", [title, body], { stdio: "ignore" });
     } catch {}
   }
-}
-
-function formatLocation(status: PiMuxrStatus): string {
-  const session = status.tmuxSession ?? "?";
-  const windowIndex = status.tmuxWindowIndex ?? "?";
-  const pane = status.paneId ?? "?";
-  return `${session}:${windowIndex}.${pane}`;
 }

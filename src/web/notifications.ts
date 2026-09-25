@@ -1,5 +1,5 @@
 import type { DashboardConfig, DashboardRow } from "../domain/status.js";
-import { projectName } from "../domain/status.js";
+import { formatNotification } from "../notifications/format.js";
 import type { Database } from "../state/database.js";
 import { readStatuses } from "../state/read-statuses.js";
 import { listTmuxPanes } from "../tmux/list-panes.js";
@@ -24,8 +24,7 @@ function pollNotifications(db: Database, config: DashboardConfig, seen: Set<stri
     seen.add(key);
     messages.push({
       type: "notification",
-      title: notificationTitle(row),
-      body: row.summary,
+      ...formatNotification(row),
       row: notificationRow(row),
     });
   }
@@ -44,10 +43,6 @@ function seedSeenEvents(seen: Set<string>, rows: DashboardRow[]): void {
 
 function eventKey(row: DashboardRow): string {
   return `${row.id}:${row.lastEventAt}`;
-}
-
-function notificationTitle(row: DashboardRow): string {
-  return `pi-muxr: ${row.state} in ${projectName(row.cwd)}`;
 }
 
 function notificationRow(row: DashboardRow): NotificationRow {

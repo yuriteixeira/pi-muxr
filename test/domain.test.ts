@@ -38,8 +38,37 @@ import {
   summarizeAskUserResult,
   summarizeToolCall,
 } from "../src/extension/pi-muxr.ts";
+import { formatNotification } from "../src/notifications/format.ts";
 import { shouldRingTerminalBell } from "../src/notifications/terminal.ts";
 import { VERSION } from "../src/version.ts";
+
+test("notification content shows tmux session, project, state, and summary", () => {
+  assert.deepEqual(
+    formatNotification({
+      cwd: "/work/pi-muxr",
+      state: "DONE",
+      summary: "Task completed",
+      tmuxSession: "development",
+    }),
+    {
+      title: "pi-muxr@development: DONE",
+      body: "Task completed",
+    },
+  );
+
+  assert.deepEqual(
+    formatNotification({
+      cwd: "/work/pi-muxr",
+      state: "ASK",
+      summary: "[ask_user] some question",
+      tmuxSession: null,
+    }),
+    {
+      title: "pi-muxr@<unknown session>: ASK",
+      body: "[ask_user] some question",
+    },
+  );
+});
 
 test("actionable/read/dismissed calculation", () => {
   const status = { state: "DONE", lastEventAt: 10 } as const;
