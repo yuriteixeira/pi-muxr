@@ -1,8 +1,7 @@
 # TODO
 
-- [ ] feat(web): show qr code
+- [ ] build(web): better web infra (all-in-one js files are hard to maintain)
 - [ ] tests: full review (very weird string assertions, see column width change commit)
-- [ ] **fix(web): terminal colors are off (different from a regular terminal)**
 - [ ] fix(web): should it just notify? think about UX
 
 # Next
@@ -16,5 +15,7 @@
 
 # Done
 
-- [x] **build: do I need to build/dist?** (no, but since pi-muxr binary needs compilation, let's build them all)
+- [x] fix(web): terminal colors are off (different from a regular terminal)
+- [x] feat(web): show qr code
+- [x] build: do I need to build/dist? (no, but since pi-muxr binary needs compilation, let's build them all)
 - [x] fix: review column widths
