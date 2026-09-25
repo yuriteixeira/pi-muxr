@@ -54,14 +54,14 @@ pi-muxr --list
 # Print the installed version
 pi-muxr --version
 
-# Start the web app with a terminal emulator
+# Start the web dashboard and terminal
 # so you can continue your work from another device
 pi-muxr --web
 ```
 
 Run `pi-muxr --sidebar` inside tmux to open and pin a full height dashboard pane on the right side of every window in every tmux session. Pass `left` or `right` to select the side. Each pane uses at most 25 percent of the window width. New tmux sessions and windows receive the same sidebar while it is pinned. A sidebar closes with its window when no other pane remains in that window. The pinned sidebar is toggleable. Run the same command again to close all dashboard sidebar panes and remove the pin.
 
-Use `--quit-on-select` to close the interactive dashboard after Enter focuses the selected row. The browser server binds to `0.0.0.0:3042` by default, so devices on the local network can connect to it. When the web server starts, the terminal shows a URL with the machine IPv4 address and a QR code for that URL.
+Use `--quit-on-select` to close the interactive dashboard after Enter focuses the selected row. The browser server binds to `0.0.0.0:3042` by default, so devices on the local network can connect to it. When the web server starts, the terminal shows a URL with the machine IPv4 address and a QR code for that URL. The URL opens the web dashboard at `/landing`. Select a session row to open its tmux pane on the `/terminal` page.
 
 ### Tmux shortcuts
 

@@ -3,10 +3,21 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 const SESSION_NAME_PATTERN = /^[A-Za-z0-9_.:-]+$/;
+const PANE_ID_PATTERN = /^%[0-9]+$/;
 const hiddenStatusSessions = new Map<string, { clients: number; previousStatus: string }>();
 
 export function isValidSessionName(name: string): boolean {
   return SESSION_NAME_PATTERN.test(name);
+}
+
+export function isValidPaneId(paneId: string): boolean {
+  return PANE_ID_PATTERN.test(paneId);
+}
+
+export function buildAttachSessionArgs(session: string, paneId: string | null): string[] {
+  const args = ["attach-session", "-t", session];
+  if (paneId) args.push(";", "select-window", "-t", paneId, ";", "select-pane", "-t", paneId);
+  return args;
 }
 
 export async function ensurePiMuxrSession(session: string): Promise<void> {

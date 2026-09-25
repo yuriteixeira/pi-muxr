@@ -5,9 +5,17 @@ import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";
 import { loadConfig } from "../config/config.js";
 import { openDatabase } from "../state/database.js";
+import { listTmuxPanes } from "../tmux/list-panes.js";
 import type { ClientMessage, ServerMessage } from "./protocol.js";
 import { createNotificationMonitor } from "./notifications.js";
-import { ensurePiMuxrSession, hideTmuxStatus, isValidSessionName, restoreTmuxStatus } from "./tmux-session.js";
+import {
+  buildAttachSessionArgs,
+  ensurePiMuxrSession,
+  hideTmuxStatus,
+  isValidPaneId,
+  isValidSessionName,
+  restoreTmuxStatus,
+} from "./tmux-session.js";
 
 export function attachTerminalGateway(server: http.Server): void {
   const websocketServer = new WebSocketServer({ noServer: true });
@@ -31,17 +39,22 @@ export function attachTerminalGateway(server: http.Server): void {
 
 async function attachTerminal(websocket: WebSocket, url: URL): Promise<void> {
   const session = url.searchParams.get("session")?.trim() || "pi-muxr-web";
+  const paneId = url.searchParams.get("pane")?.trim() || null;
   if (!isValidSessionName(session)) {
-    sendJson(websocket, { type: "error", message: "Invalid tmux session name." });
-    websocket.close();
+    rejectConnection(websocket, "Invalid tmux session name.");
+    return;
+  }
+  if (paneId && !isValidPaneId(paneId)) {
+    rejectConnection(websocket, "Invalid tmux pane ID.");
     return;
   }
 
   let terminal: IPty;
   try {
-    await ensurePiMuxrSession(session);
+    if (paneId) validatePaneTarget(session, paneId);
+    else await ensurePiMuxrSession(session);
     await hideTmuxStatus(session);
-    terminal = spawn("tmux", ["attach-session", "-t", session], {
+    terminal = spawn("tmux", buildAttachSessionArgs(session, paneId), {
       name: "xterm-256color",
       cols: 80,
       rows: 24,
@@ -85,6 +98,16 @@ async function attachTerminal(websocket: WebSocket, url: URL): Promise<void> {
   websocket.on("message", (message) => handleClientMessage(terminal, websocket, message.toString()));
   websocket.on("close", close);
   websocket.on("error", close);
+}
+
+function validatePaneTarget(session: string, paneId: string): void {
+  const pane = listTmuxPanes().find((candidate) => candidate.paneId === paneId);
+  if (!pane || pane.sessionName !== session) throw new Error("The selected tmux pane is no longer available.");
+}
+
+function rejectConnection(websocket: WebSocket, message: string): void {
+  sendJson(websocket, { type: "error", message });
+  websocket.close();
 }
 
 function handleClientMessage(terminal: IPty, websocket: WebSocket, data: string): void {

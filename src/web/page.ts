@@ -1,9 +1,9 @@
-export const WEB_PAGE = `<!doctype html>
+export const TERMINAL_PAGE = `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>pi-muxr web</title>
+  <title>pi-muxr terminal</title>
   <link rel="stylesheet" href="/vendor/xterm.css" />
   <style>
     :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f1218; color: #eef2ff; }
@@ -11,6 +11,9 @@ export const WEB_PAGE = `<!doctype html>
     body { margin: 0; min-height: 100vh; }
     header { align-items: center; background: #171b24; border-bottom: 1px solid #2d3342; display: flex; gap: 1rem; justify-content: space-between; padding: 0.8rem 1rem; }
     h1 { font-size: 1.05rem; margin: 0; }
+    .brand { align-items: center; display: flex; gap: 1rem; }
+    .back { color: #93c5fd; text-decoration: none; }
+    .back:hover { text-decoration: underline; }
     main { display: grid; grid-template-rows: auto 1fr; gap: 0.75rem; height: calc(100vh - 58px); padding: 0.75rem; }
     button { background: #2563eb; border: 0; border-radius: 8px; color: #fff; cursor: pointer; font: inherit; padding: 0.55rem 0.8rem; }
     button.secondary { background: #374151; }
@@ -21,14 +24,20 @@ export const WEB_PAGE = `<!doctype html>
     .terminal-container .xterm-viewport { scrollbar-width: none; }
     .terminal-container .xterm-viewport::-webkit-scrollbar { display: none; }
     .toasts { bottom: 1rem; display: grid; gap: 0.75rem; max-width: min(420px, calc(100vw - 2rem)); position: fixed; right: 1rem; z-index: 10; }
-    .toast { background: #1f2937; border: 1px solid #475569; border-left: 4px solid #f59e0b; border-radius: 10px; box-shadow: 0 10px 35px #0008; padding: 0.8rem; }
+    .toast { background: #1f2937; border: 1px solid #475569; border-left: 4px solid #94a3b8; border-radius: 10px; box-shadow: 0 10px 35px #0008; padding: 0.8rem; }
     .toast strong { display: block; margin-bottom: 0.25rem; }
+    .toast-ASK { border-left-color: #facc15; }
+    .toast-ERROR { border-left-color: #f87171; }
+    .toast-DONE { border-left-color: #4ade80; }
+    .toast-RUN { border-left-color: #60a5fa; }
+    .toast-QUEUED { border-left-color: #c084fc; }
+    .toast-IDLE, .toast-STALE { border-left-color: #94a3b8; }
     .error { color: #fecaca; }
   </style>
 </head>
 <body>
   <header>
-    <h1>pi-muxr web</h1>
+    <div class="brand"><a class="back" href="/landing">← Dashboard</a><h1>pi-muxr terminal</h1></div>
     <div class="status" id="session-label"></div>
   </header>
   <main>
@@ -49,7 +58,8 @@ export const WEB_PAGE = `<!doctype html>
     const notificationsButton = document.getElementById('notifications');
     const params = new URLSearchParams(location.search);
     const session = params.get('session') || 'pi-muxr-web';
-    document.getElementById('session-label').textContent = 'tmux: ' + session;
+    const pane = params.get('pane');
+    document.getElementById('session-label').textContent = 'tmux: ' + session + (pane ? ' · ' + pane : '');
 
     let terminal;
     let fitAddon;
@@ -70,7 +80,7 @@ export const WEB_PAGE = `<!doctype html>
       terminal.loadAddon(fitAddon);
       terminal.open(terminalElement);
 
-      socket = new WebSocket(buildTerminalUrl(session));
+      socket = new WebSocket(buildTerminalUrl(session, pane));
       socket.addEventListener('open', () => { statusElement.textContent = 'Connected'; fitAndSync(); terminal.focus(); });
       socket.addEventListener('message', (event) => handleServerMessage(JSON.parse(String(event.data))));
       socket.addEventListener('close', () => { statusElement.textContent = 'Disconnected — refresh to reconnect.'; });
@@ -92,7 +102,7 @@ export const WEB_PAGE = `<!doctype html>
 
     function showAttention(message) {
       const toast = document.createElement('div');
-      toast.className = 'toast';
+      toast.className = 'toast toast-' + (message.row?.state || 'IDLE');
       toast.innerHTML = '<strong></strong><div></div>';
       toast.querySelector('strong').textContent = message.title;
       toast.querySelector('div').textContent = message.body;
@@ -127,9 +137,11 @@ export const WEB_PAGE = `<!doctype html>
       }
     }
 
-    function buildTerminalUrl(sessionName) {
+    function buildTerminalUrl(sessionName, paneId) {
       const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      return protocol + '//' + location.host + '/ws/terminal?session=' + encodeURIComponent(sessionName);
+      const query = new URLSearchParams({ session: sessionName });
+      if (paneId) query.set('pane', paneId);
+      return protocol + '//' + location.host + '/ws/terminal?' + query.toString();
     }
 
     async function requestNotifications() {

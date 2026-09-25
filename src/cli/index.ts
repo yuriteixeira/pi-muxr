@@ -24,7 +24,7 @@ Usage:
   pi-muxr --sidebar [SIDE]  Toggle pinned panes in every tmux window (default: right)
   pi-muxr --list            Print current rows and exit
   pi-muxr --config          Print resolved config
-  pi-muxr --web             Serve browser terminal for a pi-muxr tmux session
+  pi-muxr --web             Serve browser dashboard and terminal pages
   pi-muxr --quit-on-select  Exit after Enter focuses the selected row
   pi-muxr --version         Show the installed version
   pi-muxr --help            Show this help

@@ -25,8 +25,9 @@ SQLite database: ~/.pi-muxr/pi-muxr.sqlite
     |       +--> terminal input and display
     |       +--> tmux pane focus
     |
-    +--> Web terminal gateway
+    +--> Web dashboard and terminal gateway
     |       |
+    |       +--> browser dashboard table
     |       +--> browser xterm terminal
     |       +--> tmux session through node-pty
     |       +--> browser notifications
@@ -187,19 +188,37 @@ When the user focuses a row, `src/tmux/focus.ts` selects the pane and switches t
 
 The sidebar command splits every window in every tmux session and starts the same `pi-muxr` entrypoint in each new pane. The default side is right, and each pane uses at most 25 percent of the window width. A tmux pane option marks each pane. A global tmux option stores the selected side. Indexed `after-new-session` and `after-new-window` hooks add the sidebar to new sessions and windows without replacing other hooks. An indexed `window-layout-changed` hook closes a sidebar when it is the only pane left in its window. The next sidebar command finds the markers, closes all dashboard sidebar panes, and removes the option and hooks.
 
-The browser gateway uses a separate tmux session, named `pi-muxr-web` by default. A query parameter can select another valid session name.
+The browser dashboard links each active row to its tmux session and pane. The terminal gateway also supports a separate tmux session, named `pi-muxr-web` by default, when no pane is selected.
+
+## Interface update methods
+
+The terminal dashboard and the browser landing page both use polling. Browser terminal output uses a stream instead.
+
+| Component                    | Update method                         | Interval                           |
+| ---------------------------- | ------------------------------------- | ---------------------------------- |
+| Terminal dashboard table     | Reads SQLite and tmux panes           | Once per second                    |
+| Browser landing page table   | Polls `/api/dashboard` over HTTP      | Once per second                    |
+| Browser terminal output      | Receives a WebSocket stream from tmux | As terminal output arrives         |
+| Browser terminal input       | Sends data through the WebSocket      | As keyboard input arrives          |
+| Browser toast notifications  | Server polls SQLite                   | Once per second                    |
+| Terminal `RUN` state spinner | Renders animation frames              | Independent of session state reads |
+
+The spinner timer only changes the animation frame. It does not read SQLite or tmux state.
 
 ## Browser interface
 
-The web interface is a local HTTP server with a WebSocket terminal gateway.
+The web interface is a local HTTP server with a dashboard API and a WebSocket terminal gateway.
 
 ```text
-Browser
-  | HTTP
+Browser /landing
+  | HTTP polling
   v
-Web server
-  | serves page, assets, and terminal theme
+Dashboard API
+  | SQLite state and tmux panes
   |
+  | selected row
+  v
+Browser /terminal
   | WebSocket
   v
 Terminal gateway
@@ -208,18 +227,20 @@ Terminal gateway
  tmux attach-session
 ```
 
-When a browser connects, the gateway:
+The root path redirects to `/landing`. The dashboard reads `/api/dashboard` once per second. Selecting a row marks its current event as read, then opens `/terminal` with its tmux session and pane identifiers.
 
-1. Validates the requested tmux session name.
-2. Creates the session when it does not exist.
+When a terminal connection opens, the gateway:
+
+1. Validates the requested tmux session and pane.
+2. Confirms that a selected pane still exists, or creates the default web session when no pane is selected.
 3. Temporarily hides the tmux status line.
-4. Starts `tmux attach-session` through `node-pty`.
+4. Starts `tmux attach-session` through `node-pty` and selects the requested pane.
 5. Forwards terminal output to the browser.
 6. Forwards keyboard input and valid resize messages to the terminal.
 7. Polls SQLite for unread actionable events and sends browser notification messages.
 8. Restores tmux status and closes resources when the connection ends.
 
-The web interface is a terminal view, not a second dashboard implementation. It attaches to the tmux session that runs the normal CLI dashboard.
+The web dashboard reuses the same state reads and row rules as the terminal dashboard. The terminal page attaches directly to the tmux pane selected on the dashboard.
 
 ## Notifications
 

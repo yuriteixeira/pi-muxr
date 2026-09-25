@@ -9,3 +9,4 @@ export * from "./state/dashboard-presence.js";
 export * from "./tmux/list-panes.js";
 export * from "./tmux/focus.js";
 export * from "./web/server.js";
+export * from "./web/dashboard-data.js";

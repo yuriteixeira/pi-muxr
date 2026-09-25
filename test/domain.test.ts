@@ -10,7 +10,13 @@ import { isActionableStatus, isUnreadStatus, type PiMuxrStatus } from "../src/do
 import { openDatabase } from "../src/state/database.ts";
 import { applyDatabaseMigrations } from "../src/state/migrations.ts";
 import { readStatuses } from "../src/state/read-statuses.ts";
-import { dismissAllRead, dismissStatus, markRead, upsertStatus } from "../src/state/write-status.ts";
+import {
+  dismissAllRead,
+  dismissStatus,
+  markCurrentEventRead,
+  markRead,
+  upsertStatus,
+} from "../src/state/write-status.ts";
 import { parseTmuxPanes } from "../src/tmux/list-panes.ts";
 import {
   buildPiMuxrCommand,
@@ -41,8 +47,10 @@ import {
 import { formatNotification } from "../src/notifications/format.ts";
 import { shouldRingTerminalBell } from "../src/notifications/terminal.ts";
 import { VERSION } from "../src/version.ts";
+import { buildTerminalPath } from "../src/web/dashboard-data.ts";
 import { buildWebServerUrl, type NetworkInterfaces } from "../src/web/server-address.ts";
 import { printWebServerAddress } from "../src/web/terminal-qr.ts";
+import { buildAttachSessionArgs, isValidPaneId } from "../src/web/tmux-session.ts";
 
 test("wildcard web bind address uses the machine IPv4 address in its URL", () => {
   const interfaces = {
@@ -63,6 +71,32 @@ test("web server output includes its URL and a compact QR code", () => {
   assert.equal(output[0], `pi-muxr web listening on ${url}`);
   assert.equal(output.length, 2);
   assert.match(output[1]!, /[█▀▄]/);
+});
+
+test("web dashboard rows link to their exact terminal pane", () => {
+  assert.equal(
+    buildTerminalPath({ paneId: "%12", tmuxSession: "work:api" }),
+    "/terminal?pane=%2512&session=work%3Aapi",
+  );
+  assert.equal(buildTerminalPath({ paneId: null, tmuxSession: "work" }), null);
+});
+
+test("web terminal validates and selects a requested tmux pane", () => {
+  assert.equal(isValidPaneId("%12"), true);
+  assert.equal(isValidPaneId("work:1"), false);
+  assert.deepEqual(buildAttachSessionArgs("work", "%12"), [
+    "attach-session",
+    "-t",
+    "work",
+    ";",
+    "select-window",
+    "-t",
+    "%12",
+    ";",
+    "select-pane",
+    "-t",
+    "%12",
+  ]);
 });
 
 test("notification content shows tmux session, project, state, and summary", () => {
@@ -235,6 +269,33 @@ test("sqlite status markers", () => {
   assert.equal(dismissAllRead(db), 1);
   assert.equal(readStatuses(db)[0]?.dismissedUntilEventAt, 100);
   dismissStatus(db, "1", 100);
+  db.close();
+});
+
+test("web selection marks only the selected current event as read", () => {
+  const db = openDatabase(join(mkdtempSync(join(tmpdir(), "pi-muxr-")), "db.sqlite"));
+  const status: PiMuxrStatus = {
+    id: "web-read",
+    paneId: "%1",
+    tmuxSession: "work",
+    tmuxWindow: "main",
+    tmuxWindowIndex: "0",
+    pid: 1,
+    cwd: "/tmp/project",
+    piSessionFile: null,
+    model: null,
+    state: "DONE",
+    severity: "medium",
+    summary: "done",
+    lastEventAt: 200,
+    heartbeatAt: 200,
+  };
+  upsertStatus(db, status);
+
+  assert.equal(markCurrentEventRead(db, status.id, 100), false);
+  assert.equal(readStatuses(db)[0]?.readUntilEventAt, null);
+  assert.equal(markCurrentEventRead(db, status.id, 200), true);
+  assert.equal(readStatuses(db)[0]?.readUntilEventAt, 200);
   db.close();
 });
 

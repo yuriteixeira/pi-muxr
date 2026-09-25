@@ -74,6 +74,13 @@ export function markRead(db: Database, id: string, lastEventAt: number): void {
   db.prepare("UPDATE sessions SET read_until_event_at = ? WHERE id = ?").run(lastEventAt, id);
 }
 
+export function markCurrentEventRead(db: Database, id: string, lastEventAt: number): boolean {
+  const result = db
+    .prepare("UPDATE sessions SET read_until_event_at = ? WHERE id = ? AND last_event_at = ?")
+    .run(lastEventAt, id, lastEventAt);
+  return Number(result.changes ?? 0) > 0;
+}
+
 export function dismissStatus(db: Database, id: string, lastEventAt: number, at = Date.now()): void {
   db.prepare("UPDATE sessions SET dismissed_until_event_at = ?, acknowledged_at = ? WHERE id = ?").run(
     lastEventAt,
