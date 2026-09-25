@@ -2,6 +2,8 @@ import http from "node:http";
 import { WEB_PAGE } from "./page.js";
 import { readVendorAsset } from "./assets.js";
 import { getBase16TerminalTheme } from "./base16-theme.js";
+import { buildWebServerUrl } from "./server-address.js";
+import { printWebServerAddress } from "./terminal-qr.js";
 
 export interface WebServerOptions {
   host?: string;
@@ -13,14 +15,14 @@ export function runWebServer(options: WebServerOptions = {}): void {
 }
 
 async function startWebServer(options: WebServerOptions): Promise<void> {
-  const host = options.host ?? process.env.HOST ?? "127.0.0.1";
+  const host = options.host ?? process.env.HOST ?? "0.0.0.0";
   const port = options.port ?? Number(process.env.PORT ?? 3042);
   const server = http.createServer(handleRequest);
   const { attachTerminalGateway } = await import("./terminal-gateway.js");
 
   attachTerminalGateway(server);
   server.listen(port, host, () => {
-    console.log(`pi-muxr web listening on http://${host}:${port}`);
+    printWebServerAddress(buildWebServerUrl(host, port));
   });
 }
 

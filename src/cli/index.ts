@@ -31,7 +31,7 @@ Usage:
 
 Keys: ↑/↓ or j/k select, Enter focus/read, d dismiss, D dismiss all read, r refresh, q quit.
 
-Web: set HOST/PORT to change the bind address (defaults to 127.0.0.1:3042).
+Web: set HOST/PORT to change the bind address (defaults to 0.0.0.0:3042).
 `;
 
 function main(argv: string[]): void {

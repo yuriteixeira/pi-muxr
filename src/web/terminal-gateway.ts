@@ -37,22 +37,23 @@ async function attachTerminal(websocket: WebSocket, url: URL): Promise<void> {
     return;
   }
 
+  let terminal: IPty;
   try {
     await ensurePiMuxrSession(session);
     await hideTmuxStatus(session);
+    terminal = spawn("tmux", ["attach-session", "-t", session], {
+      name: "xterm-256color",
+      cols: 80,
+      rows: 24,
+      cwd: process.env.HOME,
+      env: process.env,
+    });
   } catch (error) {
+    restoreTmuxStatus(session);
     sendJson(websocket, { type: "error", message: formatError(error) });
     websocket.close();
     return;
   }
-
-  const terminal = spawn("tmux", ["attach-session", "-t", session], {
-    name: "xterm-256color",
-    cols: 80,
-    rows: 24,
-    cwd: process.env.HOME,
-    env: process.env,
-  });
   const config = loadConfig();
   const db = openDatabase(config.databasePath);
   const notifications = createNotificationMonitor(db, config);

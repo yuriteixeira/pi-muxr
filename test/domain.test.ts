@@ -41,6 +41,29 @@ import {
 import { formatNotification } from "../src/notifications/format.ts";
 import { shouldRingTerminalBell } from "../src/notifications/terminal.ts";
 import { VERSION } from "../src/version.ts";
+import { buildWebServerUrl, type NetworkInterfaces } from "../src/web/server-address.ts";
+import { printWebServerAddress } from "../src/web/terminal-qr.ts";
+
+test("wildcard web bind address uses the machine IPv4 address in its URL", () => {
+  const interfaces = {
+    lo0: [{ family: "IPv4", internal: true, address: "127.0.0.1" }],
+    en0: [{ family: "IPv4", internal: false, address: "192.168.1.42" }],
+  } as NetworkInterfaces;
+
+  assert.equal(buildWebServerUrl("0.0.0.0", 3042, interfaces), "http://192.168.1.42:3042");
+  assert.equal(buildWebServerUrl("127.0.0.1", 3042, interfaces), "http://127.0.0.1:3042");
+});
+
+test("web server output includes its URL and a compact QR code", () => {
+  const output: string[] = [];
+  const url = "http://127.0.0.1:3042";
+
+  printWebServerAddress(url, (line) => output.push(line));
+
+  assert.equal(output[0], `pi-muxr web listening on ${url}`);
+  assert.equal(output.length, 2);
+  assert.match(output[1]!, /[█▀▄]/);
+});
 
 test("notification content shows tmux session, project, state, and summary", () => {
   assert.deepEqual(
