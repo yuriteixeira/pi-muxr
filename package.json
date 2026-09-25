@@ -47,6 +47,8 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.json",
+    "dev:setup": "pnpm install && pnpm build && scripts/dev.sh setup",
+    "dev:teardown": "scripts/dev.sh teardown",
     "format:check": "prettier --check .",
     "start": "tsc -p tsconfig.json --watch --preserveWatchOutput",
     "typecheck": "tsc -p tsconfig.json --noEmit",
