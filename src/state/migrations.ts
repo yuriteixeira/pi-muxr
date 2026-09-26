@@ -10,6 +10,10 @@ const DATABASE_MIGRATIONS: DatabaseMigration[] = [
     version: 1,
     apply: addLastPromptColumn,
   },
+  {
+    version: 2,
+    apply: addLastAssistantMessageColumn,
+  },
 ];
 
 export function applyDatabaseMigrations(db: Database, migrations: DatabaseMigration[] = DATABASE_MIGRATIONS): void {
@@ -36,6 +40,11 @@ export function applyDatabaseMigrations(db: Database, migrations: DatabaseMigrat
 function addLastPromptColumn(db: Database): void {
   if (hasColumn(db, "sessions", "last_prompt")) return;
   db.exec("ALTER TABLE sessions ADD COLUMN last_prompt TEXT");
+}
+
+function addLastAssistantMessageColumn(db: Database): void {
+  if (hasColumn(db, "sessions", "last_assistant_message")) return;
+  db.exec("ALTER TABLE sessions ADD COLUMN last_assistant_message TEXT");
 }
 
 function hasColumn(db: Database, table: string, column: string): boolean {

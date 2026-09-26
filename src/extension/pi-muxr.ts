@@ -66,7 +66,7 @@ export default function piMuxrExtension(pi: any): void {
   pi.on("tool_result", async (event: any, ctx: any) => handleToolResult(runtime, event, ctx));
   pi.on("agent_end", async (event: unknown, ctx: any) => {
     const status = resolveAgentEndStatus(event, runtime.lastError);
-    writeState(runtime, ctx, status.state, status.severity, status.summary);
+    writeState(runtime, ctx, status.state, status.severity, status.summary, status.lastAssistantMessage);
     runtime.lastError = null;
   });
 
@@ -120,11 +120,31 @@ function handleToolResult(runtime: RuntimeState, event: any, ctx: any): void {
 export function resolveAgentEndStatus(
   event: unknown,
   fallbackError: string | null,
-): Pick<PiMuxrStatus, "state" | "severity" | "summary"> {
+): Pick<PiMuxrStatus, "state" | "severity" | "summary"> & { lastAssistantMessage?: string | null } {
   const failure = summarizeAgentEndFailure(event);
   if (failure) return { state: "ERROR", severity: "high", summary: failure };
   if (!hasAgentEndMessages(event) && fallbackError) return { state: "ERROR", severity: "high", summary: fallbackError };
-  return { state: "DONE", severity: "medium", summary: "turn completed" };
+  const lastAssistantMessage = extractLastAssistantText(event);
+  return {
+    state: "DONE",
+    severity: "medium",
+    summary: lastAssistantMessage ? truncate(lastAssistantMessage.replace(/\s+/g, " ").trim(), 500) : "turn completed",
+    lastAssistantMessage,
+  };
+}
+
+function extractLastAssistantText(event: unknown): string | null {
+  const messages = getAgentEndMessages(event);
+  const assistant = messages && findLastMessageByRole(messages, "assistant");
+  if (!isRecord(assistant) || !Array.isArray(assistant.content)) return null;
+  const text = assistant.content
+    .filter(
+      (block): block is { type: "text"; text: string } =>
+        isRecord(block) && block.type === "text" && typeof block.text === "string",
+    )
+    .map((block) => block.text)
+    .join("\n");
+  return text.trim() ? text : null;
 }
 
 function summarizeAgentEndFailure(event: unknown): string | null {
@@ -174,11 +194,13 @@ function writeState(
   state: PiMuxrState,
   severity: PiMuxrStatus["severity"],
   summary: string,
+  lastAssistantMessage: string | null = null,
 ): void {
   if (!runtime.db || !runtime.id) return;
   const now = Date.now();
   const pane = currentPane();
   const status = baseStatus(runtime, ctx, pane, state, severity, summary, now, true);
+  status.lastAssistantMessage = lastAssistantMessage;
   const notificationSnapshot = readNotificationSnapshot(runtime.db, status.id);
   upsertStatus(runtime.db, status);
   maybeRingBell(runtime, status, notificationSnapshot);

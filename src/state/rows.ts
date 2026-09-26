@@ -13,6 +13,7 @@ type DbSessionRow = {
   state: PiMuxrStatus["state"];
   severity: PiMuxrStatus["severity"];
   summary: string;
+  last_assistant_message: string | null;
   last_prompt: string | null;
   last_event_at: number;
   heartbeat_at: number;
@@ -36,6 +37,7 @@ export function toStatus(row: DbSessionRow): PiMuxrStatus {
     state: row.state,
     severity: row.severity,
     summary: row.summary,
+    lastAssistantMessage: row.last_assistant_message,
     lastPrompt: row.last_prompt,
     lastEventAt: row.last_event_at,
     heartbeatAt: row.heartbeat_at,

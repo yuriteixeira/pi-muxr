@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   state TEXT NOT NULL,
   severity TEXT NOT NULL,
   summary TEXT NOT NULL,
+  last_assistant_message TEXT,
   last_prompt TEXT,
   last_event_at INTEGER NOT NULL,
   heartbeat_at INTEGER NOT NULL,

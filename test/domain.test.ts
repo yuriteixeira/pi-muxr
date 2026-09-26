@@ -30,7 +30,7 @@ import {
   parseSidebarSide,
   parseSidebarWindowTarget,
 } from "../src/tmux/sidebar.ts";
-import { renderDashboardLines } from "../src/cli/dashboard-component.ts";
+import { DashboardComponent, renderDashboardLines } from "../src/cli/dashboard-component.ts";
 import { getStateIcon } from "../src/cli/dashboard-icons.ts";
 import { renderRows } from "../src/cli/format.ts";
 import { chooseDashboardLayout } from "../src/cli/dashboard-layout.ts";
@@ -47,7 +47,8 @@ import {
 import { formatNotification } from "../src/notifications/format.ts";
 import { shouldRingTerminalBell } from "../src/notifications/terminal.ts";
 import { VERSION } from "../src/version.ts";
-import { buildTerminalPath } from "../src/web/dashboard-data.ts";
+import { buildTerminalPath, toWebDashboardRow } from "../src/web/dashboard-data.ts";
+import { LANDING_PAGE } from "../src/web/landing-page.ts";
 import { buildWebServerUrl, type NetworkInterfaces } from "../src/web/server-address.ts";
 import { printWebServerAddress } from "../src/web/terminal-qr.ts";
 import { buildAttachSessionArgs, isValidPaneId } from "../src/web/tmux-session.ts";
@@ -79,6 +80,29 @@ test("web dashboard rows link to their exact terminal pane", () => {
     "/terminal?pane=%2512&session=work%3Aapi",
   );
   assert.equal(buildTerminalPath({ paneId: null, tmuxSession: "work" }), null);
+});
+
+test("web rows expose the full reply for completed turns and keep other states as summaries", () => {
+  const row = {
+    id: "1",
+    displayState: "DONE",
+    unread: false,
+    actionable: true,
+    summary: "Short reply",
+    lastAssistantMessage: "Full reply",
+    cwd: "/tmp",
+    tmuxSession: null,
+    tmuxWindow: null,
+    tmuxWindowIndex: null,
+    paneId: null,
+    lastEventAt: 1,
+  } as Parameters<typeof toWebDashboardRow>[0];
+  const webRow = toWebDashboardRow(row);
+  assert.equal(webRow.summary, "Short reply");
+  assert.equal(webRow.lastAssistantMessage, "Full reply");
+  assert.equal(toWebDashboardRow({ ...row, displayState: "RUN" }).lastAssistantMessage, null);
+  assert.match(LANDING_PAGE, /row\.lastAssistantMessage \|\| row\.summary/);
+  assert.match(LANDING_PAGE, /<th>Summary<\/th>/);
 });
 
 test("web terminal validates and selects a requested tmux pane", () => {
@@ -259,16 +283,20 @@ test("sqlite status markers", () => {
     severity: "medium",
     summary: "done",
     lastPrompt: "x".repeat(130),
+    lastAssistantMessage: "Full message\n" + "x".repeat(1000),
     lastEventAt: 100,
     heartbeatAt: 100,
   };
   upsertStatus(db, status);
   markRead(db, "1", 100);
   assert.equal(readStatuses(db)[0]?.lastPrompt, `${"x".repeat(119)}…`);
+  assert.equal(readStatuses(db)[0]?.lastAssistantMessage, status.lastAssistantMessage);
   assert.equal(readStatuses(db)[0]?.readUntilEventAt, 100);
   assert.equal(dismissAllRead(db), 1);
   assert.equal(readStatuses(db)[0]?.dismissedUntilEventAt, 100);
   dismissStatus(db, "1", 100);
+  upsertStatus(db, { ...status, state: "RUN", lastAssistantMessage: null });
+  assert.equal(readStatuses(db)[0]?.lastAssistantMessage, null);
   db.close();
 });
 
@@ -329,7 +357,8 @@ test("last prompt migration updates an existing sessions table", () => {
   const columns = db.prepare("PRAGMA table_info(sessions)").all() as Array<{ name: string }>;
   const version = db.prepare("PRAGMA user_version").get() as { user_version: number };
   assert.ok(columns.some((column) => column.name === "last_prompt"));
-  assert.equal(version.user_version, 1);
+  assert.ok(columns.some((column) => column.name === "last_assistant_message"));
+  assert.equal(version.user_version, 2);
   db.close();
 });
 
@@ -417,7 +446,29 @@ test("extension reports DONE when agent recovered from a tool error", () => {
     "bash: exit 1",
   );
 
-  assert.deepEqual(status, { state: "DONE", severity: "medium", summary: "turn completed" });
+  assert.deepEqual(status, { state: "DONE", severity: "medium", summary: "handled", lastAssistantMessage: "handled" });
+});
+
+test("extension keeps full assistant text and summarizes text blocks for both dashboards", () => {
+  const text = "First paragraph\n\n" + "long ".repeat(130);
+  const status = resolveAgentEndStatus(
+    {
+      messages: [
+        {
+          role: "assistant",
+          content: [
+            { type: "thinking", thinking: "private" },
+            { type: "text", text },
+          ],
+        },
+      ],
+    },
+    null,
+  );
+  assert.equal(status.lastAssistantMessage, text);
+  assert.equal(status.summary, `${text.replace(/\s+/g, " ").trim().slice(0, 499)}…`);
+  assert.doesNotMatch(status.summary, /private/);
+  assert.equal(resolveAgentEndStatus({ messages: [] }, null).summary, "turn completed");
 });
 
 test("extension reports ERROR for failed final agent message", () => {
@@ -500,6 +551,33 @@ test("modern dashboard render lines fit the provided width", () => {
       `line exceeded width ${width}: ${lines.join("\n")}`,
     );
   }
+});
+
+test("dashboard v shortcut opens the selected assistant message", () => {
+  let opened = 0;
+  const actions = {
+    moveSelection: () => {},
+    selectFirst: () => {},
+    selectLast: () => {},
+    refresh: () => {},
+    focusSelected: () => {},
+    dismissSelected: () => {},
+    dismissAllRead: () => {},
+    openMessage: () => {
+      opened += 1;
+    },
+    quit: () => {},
+  };
+  const component = new DashboardComponent(actions, () => 12);
+  component.handleInput("v");
+  assert.equal(opened, 1);
+  assert.match(
+    component
+      .render(100)
+      .join("\n")
+      .replace(/\x1b\[[0-9;]*m/g, ""),
+    /v editor/,
+  );
 });
 
 test("dashboard shows the package version at the right of the status bar", () => {

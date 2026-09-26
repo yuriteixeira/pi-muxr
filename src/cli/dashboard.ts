@@ -9,6 +9,7 @@ import { focusPane } from "../tmux/focus.js";
 import { listTmuxPanes } from "../tmux/list-panes.js";
 import { DashboardComponent, type DashboardActions } from "./dashboard-component.js";
 import { RUN_SPINNER_INTERVAL_MS } from "./dashboard-icons.js";
+import { openMessageInEditor } from "./message-editor.js";
 import { buildDashboardRows } from "./rows.js";
 
 export interface DashboardOptions {
@@ -34,6 +35,7 @@ interface DashboardRuntime {
   presenceTimer: NodeJS.Timeout;
   animationTimer: NodeJS.Timeout;
   cleaned: boolean;
+  editing: boolean;
 }
 
 export function runDashboard(options: DashboardOptions = {}): void {
@@ -63,6 +65,7 @@ export function runDashboard(options: DashboardOptions = {}): void {
     ),
     animationTimer: setInterval(() => renderAnimationFrame(runtime), RUN_SPINNER_INTERVAL_MS),
     cleaned: false,
+    editing: false,
   };
 
   tui.addChild(component);
@@ -89,6 +92,7 @@ function createDashboardActions(getRuntime: () => DashboardRuntime): DashboardAc
     focusSelected: () => focusSelectedFromInput(getRuntime()),
     dismissSelected: () => dismissSelectedFromInput(getRuntime()),
     dismissAllRead: () => dismissAllReadFromInput(getRuntime()),
+    openMessage: () => void openSelectedMessage(getRuntime()),
     quit: () => quit(getRuntime()),
   };
 }
@@ -105,6 +109,7 @@ function cleanup(runtime: DashboardRuntime): void {
 }
 
 function refresh(runtime: DashboardRuntime): void {
+  if (runtime.editing) return;
   runtime.state.rows = buildDashboardRows(readStatuses(runtime.db), listTmuxPanes(), runtime.config);
   clampSelection(runtime.state);
   render(runtime);
@@ -120,7 +125,7 @@ function render(runtime: DashboardRuntime): void {
 }
 
 function renderAnimationFrame(runtime: DashboardRuntime): void {
-  if (!runtime.state.rows.some((row) => row.displayState === "RUN")) return;
+  if (runtime.editing || !runtime.state.rows.some((row) => row.displayState === "RUN")) return;
   runtime.component.invalidate();
   runtime.tui.requestRender();
 }
@@ -169,6 +174,32 @@ function focusSelectedFromInput(runtime: DashboardRuntime): void {
     return;
   }
   refresh(runtime);
+}
+
+async function openSelectedMessage(runtime: DashboardRuntime): Promise<void> {
+  if (runtime.editing) return;
+  const message = runtime.state.rows[runtime.state.selected]?.lastAssistantMessage;
+  if (!message) {
+    runtime.state.message = "No assistant message is available for this row.";
+    render(runtime);
+    return;
+  }
+  runtime.editing = true;
+  try {
+    await openMessageInEditor(
+      message,
+      () => runtime.tui.stop(),
+      () => {
+        if (!runtime.cleaned) runtime.tui.start();
+      },
+    );
+    runtime.state.message = null;
+  } catch (error) {
+    runtime.state.message = `Failed to open editor: ${formatError(error)}`;
+  } finally {
+    runtime.editing = false;
+    if (!runtime.cleaned) refresh(runtime);
+  }
 }
 
 function quit(runtime: DashboardRuntime): void {

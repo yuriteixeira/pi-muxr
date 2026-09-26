@@ -17,6 +17,7 @@ export interface PiMuxrStatus {
   state: PiMuxrState;
   severity: PiMuxrSeverity;
   summary: string;
+  lastAssistantMessage?: string | null;
   lastPrompt?: string | null;
   lastEventAt: number;
   heartbeatAt: number;

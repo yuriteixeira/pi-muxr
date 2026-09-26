@@ -20,6 +20,7 @@ export interface DashboardActions {
   focusSelected(): void;
   dismissSelected(): void;
   dismissAllRead(): void;
+  openMessage(): void;
   quit(): void;
 }
 
@@ -64,6 +65,7 @@ export class DashboardComponent implements Component {
     else if (matchesKey(data, "d")) this.actions.dismissSelected();
     else if (matchesKey(data, Key.shift("d")) || data === "D") this.actions.dismissAllRead();
     else if (matchesKey(data, "r")) this.actions.refresh();
+    else if (matchesKey(data, "v")) this.actions.openMessage();
     else if (matchesKey(data, "g")) this.actions.selectFirst();
     else if (matchesKey(data, Key.shift("g")) || data === "G") this.actions.selectLast();
     else if (matchesKey(data, "q") || matchesKey(data, Key.escape) || matchesKey(data, Key.ctrl("c")))
@@ -268,7 +270,7 @@ function renderFooter(width: number, theme: DashboardTheme): string {
 }
 
 function renderFooterContent(theme: DashboardTheme): string {
-  return ` ${theme.accent("↑/↓ j/k")} select  ${theme.accent("↵")} focus/read  ${theme.accent("d")} dismiss  ${theme.accent("D")} dismiss read  ${theme.accent("r")} refresh  ${theme.accent("q")} quit`;
+  return ` ${theme.accent("j/k")} select  ${theme.accent("↵")} focus/read  ${theme.accent("v")} editor  ${theme.accent("d")} dismiss  ${theme.accent("D")} clear  ${theme.accent("r")} refresh  ${theme.accent("q")} quit`;
 }
 
 function renderMessageLines(message: string | null, width: number, theme: DashboardTheme): string[] {

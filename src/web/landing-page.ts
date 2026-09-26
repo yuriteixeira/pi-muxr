@@ -48,6 +48,8 @@ export const LANDING_PAGE = `<!doctype html>
     .session-column { width: 11rem; }
     .time-column { width: 8rem; }
     .path-column { width: 18rem; }
+    td.assistant-message { white-space: normal; overflow-wrap: anywhere; }
+    td.assistant-message span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
     td.root-path { direction: rtl; text-align: left; }
     td.root-path span { direction: ltr; unicode-bidi: plaintext; }
     @media (max-width: 700px) {
@@ -73,7 +75,7 @@ export const LANDING_PAGE = `<!doctype html>
             <th class="unread-column"></th>
             <th class="session-column">Tmux session</th>
             <th>Last prompt</th>
-            <th>Last event</th>
+            <th>Summary</th>
             <th class="time-column">Updated</th>
             <th class="path-column">Root path</th>
           </tr>
@@ -139,7 +141,7 @@ export const LANDING_PAGE = `<!doctype html>
       appendUnreadCell(element, row.unread);
       appendCell(element, row.tmuxSession || '—', 'session');
       appendCell(element, row.lastPrompt || '—');
-      appendCell(element, row.summary || '—');
+      appendCell(element, row.lastAssistantMessage || row.summary || '—', row.lastAssistantMessage ? 'assistant-message' : undefined);
       appendCell(element, formatAge(now - row.lastEventAt));
       appendPathCell(element, row.cwd || '—');
       return element;

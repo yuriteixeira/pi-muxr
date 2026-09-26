@@ -10,6 +10,7 @@ export interface WebDashboardRow {
   unread: boolean;
   actionable: boolean;
   summary: string;
+  lastAssistantMessage: string | null;
   lastPrompt: string | null;
   cwd: string;
   tmuxSession: string | null;
@@ -41,6 +42,7 @@ export function toWebDashboardRow(row: DashboardRow): WebDashboardRow {
     unread: row.unread,
     actionable: row.actionable,
     summary: row.summary,
+    lastAssistantMessage: row.displayState === "DONE" ? (row.lastAssistantMessage ?? null) : null,
     lastPrompt: row.lastPrompt ?? null,
     cwd: row.cwd,
     tmuxSession: row.tmuxSession,

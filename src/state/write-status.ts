@@ -13,8 +13,8 @@ const LAST_PROMPT_MAX_LENGTH = 120;
 export function upsertStatus(db: Database, status: StatusInput): void {
   db.prepare(
     `
-    INSERT INTO sessions (id, pane_id, tmux_session, tmux_window, tmux_window_index, pid, cwd, pi_session_file, model, state, severity, summary, last_prompt, last_event_at, heartbeat_at, read_until_event_at, acknowledged_at, dismissed_until_event_at, last_notified_event_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO sessions (id, pane_id, tmux_session, tmux_window, tmux_window_index, pid, cwd, pi_session_file, model, state, severity, summary, last_assistant_message, last_prompt, last_event_at, heartbeat_at, read_until_event_at, acknowledged_at, dismissed_until_event_at, last_notified_event_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       pane_id=excluded.pane_id,
       tmux_session=excluded.tmux_session,
@@ -27,6 +27,7 @@ export function upsertStatus(db: Database, status: StatusInput): void {
       state=excluded.state,
       severity=excluded.severity,
       summary=excluded.summary,
+      last_assistant_message=excluded.last_assistant_message,
       last_prompt=excluded.last_prompt,
       last_event_at=excluded.last_event_at,
       heartbeat_at=excluded.heartbeat_at,
@@ -48,6 +49,7 @@ export function upsertStatus(db: Database, status: StatusInput): void {
     status.state,
     status.severity,
     truncate(status.summary, 500),
+    status.lastAssistantMessage ?? null,
     truncateNullable(status.lastPrompt, LAST_PROMPT_MAX_LENGTH),
     status.lastEventAt,
     status.heartbeatAt,
