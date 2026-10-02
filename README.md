@@ -34,6 +34,10 @@ To install only the dashboard command globally:
 npm install --global @yuriteixeira/pi-muxr
 ```
 
+The dashboard command requires `pi-tui` version `1.x`, which is installed as a runtime dependency.
+Pi may warn about this dependency because it also supplies `pi-tui` to extensions. This package
+uses `pi-tui` only in its standalone dashboard command, not in its Pi extension.
+
 ## Usage
 
 ```bash
