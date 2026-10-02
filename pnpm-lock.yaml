@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@earendil-works/pi-tui':
-        specifier: ^0.87.0
-        version: 0.87.0
       '@xterm/addon-fit':
         specifier: ^0.11.0
         version: 0.11.0
@@ -27,6 +24,9 @@ importers:
         specifier: ^8.21.3
         version: 8.21.3
     devDependencies:
+      '@earendil-works/pi-tui':
+        specifier: ^1.0.0
+        version: 1.0.0
       '@types/node':
         specifier: latest
         version: 26.6.2
@@ -51,8 +51,8 @@ importers:
 
 packages:
 
-  '@earendil-works/pi-tui@0.87.0':
-    resolution: {integrity: sha512-7gTC0XOgQfVWg4yGxwHINBpCnGl9p4KEC7PXIc8gAwc/cyxSW4VuFQrp+r1YD3oM+rBkoepKwAt6w6+VJ7BCaw==}
+  '@earendil-works/pi-tui@1.0.0':
+    resolution: {integrity: sha512-JsT7kXnpZA2YOtQu6RyriyxEO0eJIzPyfiH09bH+OLN5+s18HYkwaUD/tBkjhnSfMu6/50CQPRYJagzSP6HdPw==}
     engines: {node: '>=22.19.0'}
 
   '@esbuild/aix-ppc64@0.28.2':
@@ -412,7 +412,7 @@ packages:
 
 snapshots:
 
-  '@earendil-works/pi-tui@0.87.0':
+  '@earendil-works/pi-tui@1.0.0':
     dependencies:
       get-east-asian-width: 1.6.0
       marked: 18.0.11
