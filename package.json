@@ -1,6 +1,6 @@
 {
   "name": "@yuriteixeira/pi-muxr",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "tmux dashboard for Pi coding sessions",
   "type": "module",
   "packageManager": "pnpm@11.0.0-dev.1005",
@@ -58,7 +58,7 @@
     "prepare": "husky"
   },
   "peerDependencies": {
-    "@earendil-works/pi-tui": "*"
+    "@earendil-works/pi-tui": "^1.0.0"
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.11.0",
@@ -76,9 +76,6 @@
     "prettier": "^3.9.9",
     "tsx": "latest",
     "typescript": "latest"
-  },
-  "peerDependencies": {
-    "@earendil-works/pi-tui": "*"
   },
   "engines": {
     "node": ">=24.0.0"
